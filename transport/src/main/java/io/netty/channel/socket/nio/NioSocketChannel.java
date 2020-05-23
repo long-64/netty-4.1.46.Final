@@ -43,6 +43,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
@@ -85,6 +86,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
      * Create a new instance using the given {@link SelectorProvider}.
      */
     public NioSocketChannel(SelectorProvider provider) {
+        // newSocket. 打开一个新的 SocketChannel 对象
         this(newSocket(provider));
     }
 
@@ -102,6 +104,10 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
      * @param socket    the {@link SocketChannel} which will be used
      */
     public NioSocketChannel(Channel parent, SocketChannel socket) {
+        /**
+         * 调用父类 AbstractNioByteChannel 构造器
+         * {@link AbstractNioByteChannel#AbstractNioByteChannel(Channel, SelectableChannel)}
+         */
         super(parent, socket);
         config = new NioSocketChannelConfig(this, socket.socket());
     }

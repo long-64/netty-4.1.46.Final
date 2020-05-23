@@ -152,6 +152,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
+                    // [ invokeChannelRegistered ]
                     next.invokeChannelRegistered();
                 }
             });
@@ -161,6 +162,10 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
     private void invokeChannelRegistered() {
         if (invokeHandler()) {
             try {
+                /**
+                 *
+                 * {@link ChannelInitializer#channelRegistered(ChannelHandlerContext)}
+                 */
                 ((ChannelInboundHandler) handler()).channelRegistered(this);
             } catch (Throwable t) {
                 notifyHandlerException(t);

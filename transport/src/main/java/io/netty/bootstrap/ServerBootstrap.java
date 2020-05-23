@@ -32,6 +32,7 @@ import io.netty.util.internal.ObjectUtil;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
+import java.net.SocketAddress;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -80,6 +81,14 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
      * {@link Channel}'s.
      */
     public ServerBootstrap group(EventLoopGroup parentGroup, EventLoopGroup childGroup) {
+        /**
+         * 主从模型。
+         * bossGroup、workGroup
+         *
+         * bossGroup = parentGroup，在 {@link #doBind(SocketAddress)} 初始化和注册Channel 使用
+         * workGroup = {@link #init(Channel)}
+         *
+         */
         super.group(parentGroup);
         if (this.childGroup != null) {
             throw new IllegalStateException("childGroup set already");
@@ -127,6 +136,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         return this;
     }
 
+
     @Override
     void init(Channel channel) {
         setChannelOptions(channel, newOptionsArray(), logger);
@@ -142,6 +152,14 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         }
         final Entry<AttributeKey<?>, Object>[] currentChildAttrs = childAttrs.entrySet().toArray(EMPTY_ATTRIBUTE_ARRAY);
 
+        /**
+         * 处理 workerGroup
+         * pipeline 中添加一个 {@link ServerBootstrapAcceptor} 的handler
+         *  中的 childGroup 也就是 workerGroup
+         *
+         *  {@link ServerBootstrapAcceptor#channelRead(ChannelHandlerContext, Object)}
+         *
+         */
         p.addLast(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) {
@@ -204,6 +222,18 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             };
         }
 
+        /**
+         * 调用时机
+         *      其实当一个Client连接到Server时，Java底层NIO的ServerSocketChannel就会有一个SelectionKey.OP_ACCEPT的事件就绪，
+         *      接着就会调用NioServerSocketChannel的doReadMessages()
+         *
+         *      在doReadMessages()方法中，通过调用javaChannel().accept()方法获取客户端新连接的SocketChannel对象，
+         *      紧接着实例化一个NioSocketChannel，并且传入NioServerSocketChannel对象（即this）。
+         *      由此可知，我们创建的NioSocketChannel的父类Channel就是NioServerSocketChannel实例。
+         *      接下来利用Netty的ChannelPipeline机制，将读取事件逐级发送到各个Handler中，
+         * @param ctx
+         * @param msg
+         */
         @Override
         @SuppressWarnings("unchecked")
         public void channelRead(ChannelHandlerContext ctx, Object msg) {

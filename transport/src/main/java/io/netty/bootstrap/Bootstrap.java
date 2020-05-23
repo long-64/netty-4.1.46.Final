@@ -18,6 +18,7 @@ package io.netty.bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.EventLoop;
@@ -26,6 +27,7 @@ import io.netty.resolver.AddressResolver;
 import io.netty.resolver.DefaultAddressResolverGroup;
 import io.netty.resolver.NameResolver;
 import io.netty.resolver.AddressResolverGroup;
+import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.FutureListener;
 import io.netty.util.internal.ObjectUtil;
@@ -105,6 +107,7 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
 
     /**
      * Connect a {@link Channel} to the remote peer.
+     * 客户端初始化入口
      */
     public ChannelFuture connect() {
         validate();
@@ -112,7 +115,7 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
         if (remoteAddress == null) {
             throw new IllegalStateException("remoteAddress not set");
         }
-
+        // 1\
         return doResolveAndConnect(remoteAddress, config.localAddress());
     }
 
@@ -152,6 +155,10 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
      * @see #connect()
      */
     private ChannelFuture doResolveAndConnect(final SocketAddress remoteAddress, final SocketAddress localAddress) {
+        /**
+         * 初始化 Channel实例，并 Channel 注册到 Selector。
+         * 【 initAndRegister 】
+         */
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
 
@@ -253,6 +260,17 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
     @Override
     @SuppressWarnings("unchecked")
     void init(Channel channel) {
+        /**
+         * 1、channel.pipeline() -> pipeline
+         * {@link io.netty.channel.AbstractChannel#AbstractChannel(Channel)}
+         *
+         * 2、p.addLast()
+         * {@link io.netty.channel.DefaultChannelPipeline#addLast(EventExecutorGroup, String, ChannelHandler)}
+         *          *
+         *          * 3、)config.handler -> {@link AbstractBootstrap#handler()}
+         * 设置 `ChannelInitializer` 实例，将 `ChannelInitializer` 添加到 Pipeline 尾部
+         *
+         */
         ChannelPipeline p = channel.pipeline();
         p.addLast(config.handler());
 

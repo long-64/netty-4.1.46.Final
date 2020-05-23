@@ -65,6 +65,8 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
      * @param executor          the Executor to use, or {@code null} if the default should be used.
      * @param chooserFactory    the {@link EventExecutorChooserFactory} to use.
      * @param args              arguments which will passed to each {@link #newChild(Executor, Object...)} call
+     *
+     *   NioEventLoopGroup 初始化
      */
     protected MultithreadEventExecutorGroup(int nThreads, Executor executor,
                                             EventExecutorChooserFactory chooserFactory, Object... args) {
@@ -76,11 +78,24 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             executor = new ThreadPerTaskExecutor(newDefaultThreadFactory());
         }
 
+        /**
+         * 1、可以指定线程数，若未指定，默认是CPU核数 * 2
+         * 2、newChild() 初始化 children 数组。
+         *      {@link MultithreadEventExecutorGroup } 内部维护了一个EventExecutor数组，
+         *      而Netty的 {@link EventLoopGroup } 的实现机制其实就建立在 {@link MultithreadEventExecutorGroup} 之上。
+         *      每当Netty需要一个EventLoop时，都会调用next()方法获取一个可用的EventLoop。
+         */
         children = new EventExecutor[nThreads];
 
         for (int i = 0; i < nThreads; i ++) {
             boolean success = false;
             try {
+
+                /**
+                 *  返回一个NioEventLoop 实例
+                 *
+                 * {@link io.netty.channel.nio.NioEventLoopGroup#newChild(Executor, Object...)}
+                 */
                 children[i] = newChild(executor, args);
                 success = true;
             } catch (Exception e) {
@@ -108,6 +123,9 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             }
         }
 
+        /**
+         * [newChooser] 提供后续
+         */
         chooser = chooserFactory.newChooser(children);
 
         final FutureListener<Object> terminationListener = new FutureListener<Object>() {

@@ -32,6 +32,11 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
     @SuppressWarnings("unchecked")
     @Override
     public EventExecutorChooser newChooser(EventExecutor[] executors) {
+        /**
+         * 判断 是否是2的平方。
+         * 这两个类，都实现 {@link EventExecutorChooser#next()} 方法
+         *   主要功能是，数组索引循环移位。
+         */
         if (isPowerOfTwo(executors.length)) {
             return new PowerOfTwoEventExecutorChooser(executors);
         } else {

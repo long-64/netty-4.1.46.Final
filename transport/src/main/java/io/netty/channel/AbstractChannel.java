@@ -16,6 +16,7 @@
 package io.netty.channel;
 
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.channel.nio.AbstractNioChannel;
 import io.netty.channel.socket.ChannelOutputShutdownEvent;
 import io.netty.channel.socket.ChannelOutputShutdownException;
 import io.netty.util.DefaultAttributeMap;
@@ -69,6 +70,11 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
      *        the parent of this channel. {@code null} if there's no parent.
      */
     protected AbstractChannel(Channel parent) {
+        /**
+         * id = 分配唯一ID
+         * unsafe 实例化一个 unsafe 对象 AbstractNioByteChannel.NioByteUnsafe
+         * pipeline {@link DefaultChannelPipeline#DefaultChannelPipeline(Channel)} 创建实例
+         */
         this.parent = parent;
         id = newId();
         unsafe = newUnsafe();
@@ -449,6 +455,11 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             return remoteAddress0();
         }
 
+        /**
+         * AbstractBootstrap `config().group().register(channel);`
+         * @param eventLoop
+         * @param promise
+         */
         @Override
         public final void register(EventLoop eventLoop, final ChannelPromise promise) {
             ObjectUtil.checkNotNull(eventLoop, "eventLoop");
@@ -462,12 +473,22 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 return;
             }
 
+            // 将一个EventLoop赋值给AbstractChannel内部的eventLoop属性
             AbstractChannel.this.eventLoop = eventLoop;
 
+            /**
+             * 从Bootstrap的bind()方法一路跟踪到AbstractChannel$AbstractUnsafe的register()方法，
+             * 整个代码都是在主线程中运行的，因此上面的eventLoop.inEventLoop()返回值为false
+             */
             if (eventLoop.inEventLoop()) {
+                // 【 register0 】
                 register0(promise);
             } else {
                 try {
+                    /**
+                     * 启动 EventLoop
+                     * {@link io.netty.util.concurrent.SingleThreadEventExecutor#execute(Runnable)}
+                     */
                     eventLoop.execute(new Runnable() {
                         @Override
                         public void run() {
@@ -493,6 +514,11 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                     return;
                 }
                 boolean firstRegistration = neverRegistered;
+
+                /**
+                 * 实现
+                 * {@link AbstractNioChannel#doRegister()}
+                 */
                 doRegister();
                 neverRegistered = false;
                 registered = true;
@@ -502,6 +528,12 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 pipeline.invokeHandlerAddedIfNeeded();
 
                 safeSetSuccess(promise);
+
+                /**
+                 * 自定义 channelHandler 添加过程
+                 *
+                 * {@link AbstractChannelHandlerContext#invokeChannelRegistered(AbstractChannelHandlerContext)}
+                 */
                 pipeline.fireChannelRegistered();
                 // Only fire a channelActive if the channel has never been registered. This prevents firing
                 // multiple channel actives if the channel is deregistered and re-registered.

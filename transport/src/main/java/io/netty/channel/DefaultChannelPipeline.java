@@ -94,6 +94,16 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         succeededFuture = new SucceededChannelFuture(channel, null);
         voidPromise =  new VoidChannelPromise(channel, true);
 
+        /**
+         * 双向链表
+         * tail 尾节点
+         * head 头节点
+         *
+         * 维护一个 {@link AbstractChannelHandlerContext} 为节点的双向链表
+         *
+         * 【 HeadContext、TailContext 】
+         *
+         */
         tail = new TailContext(this);
         head = new HeadContext(this);
 
@@ -195,14 +205,30 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return addLast(null, name, handler);
     }
 
+    /**
+     * 将 ChannelInitializer 插入链表尾部。
+     * @param group    the {@link EventExecutorGroup} which will be used to execute the {@link ChannelHandler}
+     *                 methods
+     * @param name     the name of the handler to append
+     * @param handler  the handler to append
+     *
+     * @return
+     */
     @Override
     public final ChannelPipeline addLast(EventExecutorGroup group, String name, ChannelHandler handler) {
         final AbstractChannelHandlerContext newCtx;
         synchronized (this) {
+            // 校验名称是否重复
             checkMultiplicity(handler);
 
+            /**
+             * 这个Handler创建一个对应的DefaultChannelHandlerContext实例，并与之关联起来（Context中有一个Handler属性保存着对应的Handler实例
+             *
+             * filterName() 生产一个名字
+             */
             newCtx = newContext(group, filterName(name, handler), handler);
 
+            // 插入双向链表中
             addLast0(newCtx);
 
             // If the registered is false it means that the channel was not registered on an eventLoop yet.
@@ -378,6 +404,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             if (h == null) {
                 break;
             }
+            // [addLast]
             addLast(executor, null, h);
         }
 
@@ -1308,6 +1335,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         private final Unsafe unsafe;
 
         HeadContext(DefaultChannelPipeline pipeline) {
+            // 调用父类构造器。
             super(pipeline, null, HEAD_NAME, HeadContext.class);
             unsafe = pipeline.channel().unsafe();
             setAddComplete();

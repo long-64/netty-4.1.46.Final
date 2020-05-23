@@ -369,6 +369,12 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         return selector.keys().size() - cancelledKeys;
     }
 
+    /**
+     * 重构新的 Selector
+     * 1、创建新的 Selector
+     * 2、将原有的 事件全部取消。
+     * 3、将可用事件重新注册到新的Selector，并激活
+     */
     private void rebuildSelector0() {
         final Selector oldSelector = selector;
         final SelectorTuple newSelectorTuple;
@@ -431,6 +437,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /**
+     * 服务端Selector事件轮询
+     */
     @Override
     protected void run() {
         int selectCnt = 0;
@@ -473,7 +482,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                     continue;
                 }
 
-                selectCnt++;
+                selectCnt++; //轮训计数
                 cancelledKeys = 0;
                 needsToSelectAgain = false;
                 final int ioRatio = this.ioRatio;
@@ -506,6 +515,10 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                                 selectCnt - 1, selector);
                     }
                     selectCnt = 0;
+                    /**
+                     * 解决JDK 空轮训 bug
+                     *  selectCnt > 512 则重构 Selector
+                     */
                 } else if (unexpectedSelectorWakeup(selectCnt)) { // Unexpected wakeup (unusual case)
                     selectCnt = 0;
                 }
@@ -553,6 +566,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             // Rebuild the selector to work around the problem.
             logger.warn("Selector.select() returned prematurely {} times in a row; rebuilding Selector {}.",
                     selectCnt, selector);
+            // [rebuildSelector]
             rebuildSelector();
             return true;
         }

@@ -106,6 +106,12 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * {@link Channel} implementation has no no-args constructor.
      */
     public B channel(Class<? extends C> channelClass) {
+        /**
+         * 实例化 channel 实例，
+         * @see io.netty.bootstrap.Bootstrap#connect() 使用
+         * 【ReflectiveChannelFactory -》 newChannel 】处理
+         *
+         */
         return channelFactory(new ReflectiveChannelFactory<C>(
                 ObjectUtil.checkNotNull(channelClass, "channelClass")
         ));
@@ -268,7 +274,13 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         return doBind(ObjectUtil.checkNotNull(localAddress, "localAddress"));
     }
 
+    /**
+     * 触发流程
+     * @param localAddress
+     * @return
+     */
     private ChannelFuture doBind(final SocketAddress localAddress) {
+        // 实例化 Channel 并注册Selector。
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
         if (regFuture.cause() != null) {
@@ -278,6 +290,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         if (regFuture.isDone()) {
             // At this point we know that the registration was complete and successful.
             ChannelPromise promise = channel.newPromise();
+            // 轮训事件
             doBind0(regFuture, channel, localAddress, promise);
             return promise;
         } else {
@@ -307,7 +320,19 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     final ChannelFuture initAndRegister() {
         Channel channel = null;
         try {
+            /**
+             * Bootstrap.channel 初始化 channel 实例
+             * @see #channel
+             * 使用反射机制，创建NioSocketChannel 实例（默认构造器）
+             * @see io.netty.channel.socket.nio.NioSocketChannel#NioSocketChannel()
+             */
             channel = channelFactory.newChannel();
+
+            /**
+             *  @see #init(Channel)
+             *  ServerBootstrap 主从模式，workGroup 绑定逻辑。{@link ServerBootstrap#init(Channel)}
+             *  Bootstrap 将Channel 添加到 Pipeline {@link Bootstrap#init(Channel)}
+             */
             init(channel);
         } catch (Throwable t) {
             if (channel != null) {
@@ -320,6 +345,20 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             return new DefaultChannelPromise(new FailedChannel(), GlobalEventExecutor.INSTANCE).setFailure(t);
         }
 
+        /**
+         * 将 Channel 注册到 Selector。
+         *  最终调用
+         *  @see io.netty.channel.AbstractChannel.AbstractUnsafe#register(EventLoop, ChannelPromise)
+         *
+         *  Channel的注册过程所做的工作就是将Channel与对应的EventLoop进行关联。
+         *  因此，在Netty中，每个Channel都会关联一个特定的EventLoop，
+         *  并且这个Channel中的所有I/O操作都是在这个EventLoop中执行的；
+         *  当关联好Channel和EventLoop后，会继续调用底层JavaNIO的SocketChannel对象的register()方法，
+         *  将底层Java NIO的SocketChannel注册到指定的Selector中。
+         *
+         *  {@link AbstractBootstrap#bind()} 是主线程，启动 EventLoop
+         *
+         */
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {
             if (channel.isRegistered()) {
@@ -349,6 +388,17 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
         // This method is invoked before channelRegistered() is triggered.  Give user handlers a chance to set up
         // the pipeline in its channelRegistered() implementation.
+        /**
+         *
+         *  服务端Selector事件轮询
+         *
+         * 调用 {@link io.netty.channel.SingleThreadEventLoop#execute(Runnable)}
+         *
+         * 1、为每个任务都创建一个单独的线程，并保存到 `无锁化串行任务队列`。
+         * 2、线程任务队列的每个任务实际调用的是NioEventLoop的run()方法
+         * 3、在run()方法中调用processSelectedKeys()处理轮询事件
+         *
+         */
         channel.eventLoop().execute(new Runnable() {
             @Override
             public void run() {
