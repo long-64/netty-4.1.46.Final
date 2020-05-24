@@ -18,16 +18,18 @@ package io.netty.buffer;
 
 final class PoolSubpage<T> implements PoolSubpageMetric {
 
-    final PoolChunk<T> chunk;
+    final PoolChunk<T> chunk; // 代表其子页属于哪个Chunk
     private final int memoryMapIdx;
     private final int runOffset;
     private final int pageSize;
-    private final long[] bitmap;
+    private final long[] bitmap; // 用于记录子页的内存分配情况
 
+    // 是按照双向链表进行关联的，分别指向上一个节点和下一个节点
     PoolSubpage<T> prev;
     PoolSubpage<T> next;
 
     boolean doNotDestroy;
+    // 属性代表的是子页是按照多大内存进行划分的
     int elemSize;
     private int maxNumElems;
     private int bitmapLength;
@@ -60,6 +62,7 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
         doNotDestroy = true;
         this.elemSize = elemSize;
         if (elemSize != 0) {
+            // 表示当前缓冲区，被分多少份
             maxNumElems = numAvail = pageSize / elemSize;
             nextAvail = 0;
             bitmapLength = maxNumElems >>> 6;
@@ -68,6 +71,10 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
             }
 
             for (int i = 0; i < bitmapLength; i ++) {
+                /**
+                 * bitmap 用于标识，那个SubPage被分配
+                 * 0： 未分配、1：已分配
+                 */
                 bitmap[i] = 0;
             }
         }
@@ -85,14 +92,18 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
         if (numAvail == 0 || !doNotDestroy) {
             return -1;
         }
-
+        // 获取一个 bitmap 中可用的ID，【getNextAvail 】
         final int bitmapIdx = getNextAvail();
+        // 除以64（bitmap 的相对下标）
         int q = bitmapIdx >>> 6;
+        // 除以64，取余，其实就是当前决定ID的偏移量
         int r = bitmapIdx & 63;
         assert (bitmap[q] >>> r & 1) == 0;
+        // 当前位标记位 1
         bitmap[q] |= 1L << r;
-
+        // 可用的Subpage -1
         if (-- numAvail == 0) {
+            // 则移除相关 SubPage
             removeFromPool();
         }
 
@@ -158,18 +169,25 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
     private int getNextAvail() {
         int nextAvail = this.nextAvail;
         if (nextAvail >= 0) {
+            /**
+             * 一个子Subpage 被释放之后，会记录当前page 的 bitmap 的位置，下次分配可用直接通过 bitmapIdx 获取一个 SubPage
+             */
             this.nextAvail = -1;
             return nextAvail;
         }
+        // findNextAvail
         return findNextAvail();
     }
 
     private int findNextAvail() {
+        // 当前 long 数组
         final long[] bitmap = this.bitmap;
+        // 获取其长度
         final int bitmapLength = this.bitmapLength;
         for (int i = 0; i < bitmapLength; i ++) {
             long bits = bitmap[i];
             if (~bits != 0) {
+                // 找下一个节点 【 findNextAvail0 】
                 return findNextAvail0(i, bits);
             }
         }
@@ -177,9 +195,11 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
     }
 
     private int findNextAvail0(int i, long bits) {
+        // 多少份
         final int maxNumElems = this.maxNumElems;
+        //  乘以64，代表当前long 的第一个下标
         final int baseVal = i << 6;
-
+        //  循环64次，
         for (int j = 0; j < 64; j ++) {
             if ((bits & 1) == 0) {
                 int val = baseVal | j;

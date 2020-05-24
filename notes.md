@@ -42,3 +42,18 @@
 #### Inbound 事件传播
 - 在出站， AbstractNioUnsafe#connect() -》fulfillConnectPromise() 产生ChannelActive事件，开始入站流程。
 
+### ByteBuf
+#### ByteBufAllocator内存管理器
+- AbstractByteBufAllocator# buffer()
+
+##### 池化堆内，内存分配流程
+- AbstractByteBufAllocator # newHeapBuffer()
+
+##### DirectArena内存分配流程
+- PooledByteBufAllocator # newDirectBuffer()
+
+#### 内存分配重点
+- PoolArena # allocate()
+
+##### SubPage
+- PoolChunk # allocateSubpage() 在子叶上进行内存分配。

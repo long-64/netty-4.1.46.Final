@@ -329,8 +329,21 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
         return chunkSize;
     }
 
+    /**
+     * 池化，堆内（heapArena）内存分配流程
+     * @param initialCapacity
+     * @param maxCapacity
+     * @return
+     */
     @Override
     protected ByteBuf newHeapBuffer(int initialCapacity, int maxCapacity) {
+        /**
+         *  1、获取PoolThreadCache 缓存对象。
+         *  2、从缓存中，获取 poolArena 对象
+         *  3、调用 `heapArena.allocate` 分配 ByteBuf。
+         *
+         * 关注缓存的初始化、{@link PoolThreadLocalCache#initialValue()}
+         */
         PoolThreadCache cache = threadCache.get();
         PoolArena<byte[]> heapArena = cache.heapArena;
 
@@ -346,13 +359,35 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
         return toLeakAwareBuffer(buf);
     }
 
+    /**
+     * 池化，堆外（DirectArena） 内存分配流程
+     * @param initialCapacity
+     * @param maxCapacity
+     * @return
+     */
     @Override
     protected ByteBuf newDirectBuffer(int initialCapacity, int maxCapacity) {
+        /**
+         *
+         * 初始化缓存、{@link PoolThreadLocalCache#initialValue()}
+         *  1、初始化，已配好 `PoolThreadCache` 三个缓存数组。
+         *      1、tinySubPageDirectCaches
+         *      2、smallSubPageDirectCaches
+         *      3、normalDirectCaches
+         *
+         *
+         * 1、获取缓存对象。
+         * 2、从缓存中，获取 `directArena` 对象。
+         * 3、调用 `directArena.allocate` 分配 ByteBuf
+         */
         PoolThreadCache cache = threadCache.get();
         PoolArena<ByteBuffer> directArena = cache.directArena;
 
         final ByteBuf buf;
         if (directArena != null) {
+            /**
+             * {@link PoolArena#allocate(PoolThreadCache, int, int)}
+             */
             buf = directArena.allocate(cache, initialCapacity, maxCapacity);
         } else {
             buf = PlatformDependent.hasUnsafe() ?
@@ -464,11 +499,27 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
 
         @Override
         protected synchronized PoolThreadCache initialValue() {
+            /**
+             * 从heapArena 中获取使用率最少的 Arena
+             *
+             * 1、heapArenas、directArenas 是在
+             *  {@link #PooledByteBufAllocator(boolean, int, int, int, int, int, int, int, boolean, int)}  构造函数中
+             * 2、调用 {@link #newArenaArray(int)} 进行赋值，
+             * 3、创建一个固定大小的 `PoolArena 数组` 默认：CPU核数 * 2
+             *
+             * 4、同时 `PooledByteBufAllocator` 分别赋值，
+             *   1、tinyCacheSize = 512
+             *   2、smallCacheSize = 256
+             *   3、normalCacheSize = 64
+             *
+             */
             final PoolArena<byte[]> heapArena = leastUsedArena(heapArenas);
+            // 从 directArena 中获取使用率最少的 Arena
             final PoolArena<ByteBuffer> directArena = leastUsedArena(directArenas);
 
             final Thread current = Thread.currentThread();
             if (useCacheForAllThreads || current instanceof FastThreadLocalThread) {
+                // 【PoolThreadCache 构造器】
                 final PoolThreadCache cache = new PoolThreadCache(
                         heapArena, directArena, tinyCacheSize, smallCacheSize, normalCacheSize,
                         DEFAULT_MAX_CACHED_BUFFER_CAPACITY, DEFAULT_CACHE_TRIM_INTERVAL);

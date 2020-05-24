@@ -36,6 +36,12 @@ final class PooledUnsafeDirectByteBuf extends PooledByteBuf<ByteBuffer> {
     });
 
     static PooledUnsafeDirectByteBuf newInstance(int maxCapacity) {
+        /**
+         * RECYCLER 内存回收
+         * 1、实现 newObject。当没有可用 buf, 则创建一个新的 `buf`
+         * 2、`buf.resuse()` 设置初始状态，
+         *  1、readIndex、wiredIndex  = 0
+         */
         PooledUnsafeDirectByteBuf buf = RECYCLER.get();
         buf.reuse(maxCapacity);
         return buf;
@@ -50,6 +56,7 @@ final class PooledUnsafeDirectByteBuf extends PooledByteBuf<ByteBuffer> {
     @Override
     void init(PoolChunk<ByteBuffer> chunk, ByteBuffer nioBuffer,
               long handle, int offset, int length, int maxLength, PoolThreadCache cache) {
+        // 调用父类构造器， 进行缓存分配
         super.init(chunk, nioBuffer, handle, offset, length, maxLength, cache);
         initMemoryAddress();
     }

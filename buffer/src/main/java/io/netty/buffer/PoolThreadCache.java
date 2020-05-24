@@ -92,6 +92,10 @@ final class PoolThreadCache {
         }
         if (heapArena != null) {
             // Create the caches for the heap allocations
+            /**
+             * 创建缓存，用于内存管理。
+             * 【 createSubPageCaches 】
+             */
             tinySubPageHeapCaches = createSubPageCaches(
                     tinyCacheSize, PoolArena.numTinySubpagePools, SizeClass.Tiny);
             smallSubPageHeapCaches = createSubPageCaches(
@@ -119,6 +123,18 @@ final class PoolThreadCache {
         }
     }
 
+    /**
+     * 创建固定规则，的缓存数组。
+     *  tinySubPageDirectCaches[1] = 缓存中 ByteBuf 大小为 16Byte
+     *  tinySubPageDirectCaches[2] = 缓存中 ByteBuf 大小为 32Byte
+     *  。。。
+     *  tinySubPageDirectCaches[31] = 缓存中 ByteBuf 大小为 496Byte
+     *
+     *  tiny 共32种规则。
+     *  small 共4种规则，512Byte、1kB、2KB、4KB
+     *  normal 共3种规则，8kB、16KB、32KB
+     *
+     */
     private static <T> MemoryRegionCache<T>[] createSubPageCaches(
             int cacheSize, int numCaches, SizeClass sizeClass) {
         if (cacheSize > 0 && numCaches > 0) {
@@ -134,6 +150,9 @@ final class PoolThreadCache {
         }
     }
 
+    /**
+     * 创建 normal 规则的缓存。
+     */
     private static <T> MemoryRegionCache<T>[] createNormalCaches(
             int cacheSize, int maxCachedBufferCapacity, PoolArena<T> area) {
         if (cacheSize > 0 && maxCachedBufferCapacity > 0) {
@@ -164,6 +183,12 @@ final class PoolThreadCache {
      * Try to allocate a tiny buffer out of the cache. Returns {@code true} if successful {@code false} otherwise
      */
     boolean allocateTiny(PoolArena<?> area, PooledByteBuf<?> buf, int reqCapacity, int normCapacity) {
+        /**
+         * 【cacheForTiny 】
+         *  1、找到 tiny 数组下标，从缓存中获取
+         *
+         *  【 allocate 】
+         */
         return allocate(cacheForTiny(area, normCapacity), buf, reqCapacity);
     }
 
@@ -187,6 +212,7 @@ final class PoolThreadCache {
             // no cache found so just return false here
             return false;
         }
+        // 【 allocate 】
         boolean allocated = cache.allocate(buf, reqCapacity);
         if (++ allocations >= freeSweepAllocationThreshold) {
             allocations = 0;
@@ -306,6 +332,11 @@ final class PoolThreadCache {
     }
 
     private MemoryRegionCache<?> cacheForTiny(PoolArena<?> area, int normCapacity) {
+        /**
+         * 找到，tiny缓存数组的下标。
+         *
+         *  normCapacity >>> 4 相对于，除以16，tiny 缓存数组，每个元素的规则都是16的倍数。
+         */
         int idx = PoolArena.tinyIdx(normCapacity);
         if (area.isDirect()) {
             return cache(tinySubPageDirectCaches, idx);
@@ -345,6 +376,10 @@ final class PoolThreadCache {
             super(size, sizeClass);
         }
 
+        /**
+         * 初始化Buf
+         *
+         */
         @Override
         protected void initBuf(
                 PoolChunk<T> chunk, ByteBuffer nioBuffer, long handle, PooledByteBuf<T> buf, int reqCapacity) {
@@ -404,6 +439,20 @@ final class PoolThreadCache {
          * Allocate something out of the cache if possible and remove the entry from the cache.
          */
         public final boolean allocate(PooledByteBuf<T> buf, int reqCapacity) {
+            /**
+             *  MemoryRegionCache 内部维护一个队列, 而队列中的每一个值是一个Entry。
+             *
+             *   Entry.chunk 一个连续内存
+             *   Entry.handle 指针，可以定位到 chunk里的一快连续内存
+             *
+             *  【 initBuf 】进行缓存分配
+             *   {@link SubPageMemoryRegionCache#initBuf(PoolChunk, ByteBuffer, long, PooledByteBuf, int)}
+             *   {@link NormalMemoryRegionCache#initBuf(PoolChunk, ByteBuffer, long, PooledByteBuf, int)}
+             *
+             *  【entry.recycle() 】
+             *   这步将Entry对象回收，因为Entry对象弹出之后没有再被引用，
+             *   所以可能GC会将Entry对象回收。Netty为了将对象循环利用，将其放在对象回收站进行回收
+             */
             Entry<T> entry = queue.poll();
             if (entry == null) {
                 return false;
@@ -466,8 +515,8 @@ final class PoolThreadCache {
         }
 
         static final class Entry<T> {
-            final Handle<Entry<?>> recyclerHandle;
-            PoolChunk<T> chunk;
+            final Handle<Entry<?>> recyclerHandle; // 指针，可以定位到 chunk里的一快连续内存。
+            PoolChunk<T> chunk; // 连续内存
             ByteBuffer nioBuffer;
             long handle = -1;
 
@@ -476,6 +525,10 @@ final class PoolThreadCache {
             }
 
             void recycle() {
+                /**
+                 *  chunk=null和handle=-1表示当前Entry不指向任何一块内存。
+                 *  recyclerHandle.recycle(this)将当前Entry回收
+                 */
                 chunk = null;
                 nioBuffer = null;
                 handle = -1;

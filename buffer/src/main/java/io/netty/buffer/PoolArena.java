@@ -93,6 +93,7 @@ abstract class PoolArena<T> implements PoolArenaMetric {
         directMemoryCacheAlignment = cacheAlignment;
         directMemoryCacheAlignmentMask = cacheAlignment - 1;
         subpageOverflowMask = ~(pageSize - 1);
+        // 初始化 tinySubPagePools
         tinySubpagePools = newSubpagePoolArray(numTinySubpagePools);
         for (int i = 0; i < tinySubpagePools.length; i ++) {
             tinySubpagePools[i] = newSubpagePoolHead(pageSize);
@@ -143,7 +144,14 @@ abstract class PoolArena<T> implements PoolArenaMetric {
     abstract boolean isDirect();
 
     PooledByteBuf<T> allocate(PoolThreadCache cache, int reqCapacity, int maxCapacity) {
+        /**
+         * 创建ByteBuf.
+         *  1、判断是否支持 unsafe.
+         *  2、从 `RECYCLER` 回收站内获取。可用 `buf`
+         * {@link DirectArena#newByteBuf(int)}
+         */
         PooledByteBuf<T> buf = newByteBuf(maxCapacity);
+        // 内存分配
         allocate(cache, buf, reqCapacity);
         return buf;
     }
@@ -172,18 +180,36 @@ abstract class PoolArena<T> implements PoolArenaMetric {
         return (normCapacity & 0xFFFFFE00) == 0;
     }
 
+    /**
+     *  TODO ByteBuf 内存分配重点
+     * @param cache
+     * @param buf
+     * @param reqCapacity
+     */
     private void allocate(PoolThreadCache cache, PooledByteBuf<T> buf, final int reqCapacity) {
+        /**
+         * 规则化
+         * 【 normalizeCapacity 】
+         */
         final int normCapacity = normalizeCapacity(reqCapacity);
+        // 判断是不是 tiny 类型
         if (isTinyOrSmall(normCapacity)) { // capacity < pageSize
             int tableIdx;
             PoolSubpage<T>[] table;
             boolean tiny = isTiny(normCapacity);
             if (tiny) { // < 512
+                // 缓存分配 【 allocateTiny 】
                 if (cache.allocateTiny(this, buf, reqCapacity, normCapacity)) {
                     // was able to allocate out of the cache so move on
                     return;
                 }
+                /**
+                 * 通过 tinyIdx 获取 tableIdx
+                 *  normCapacity >>> 4;
+                 *  16的倍数。
+                 */
                 tableIdx = tinyIdx(normCapacity);
+                // 在 subPage 数组
                 table = tinySubpagePools;
             } else {
                 if (cache.allocateSmall(this, buf, reqCapacity, normCapacity)) {
@@ -193,7 +219,7 @@ abstract class PoolArena<T> implements PoolArenaMetric {
                 tableIdx = smallIdx(normCapacity);
                 table = smallSubpagePools;
             }
-
+            // 找到对应节点
             final PoolSubpage<T> head = table[tableIdx];
 
             /**
@@ -202,6 +228,7 @@ abstract class PoolArena<T> implements PoolArenaMetric {
              */
             synchronized (head) {
                 final PoolSubpage<T> s = head.next;
+                // 默认情况下，head 的 next 也是自身
                 if (s != head) {
                     assert s.doNotDestroy && s.elemSize == normCapacity;
                     long handle = s.allocate();
@@ -212,6 +239,7 @@ abstract class PoolArena<T> implements PoolArenaMetric {
                 }
             }
             synchronized (this) {
+                // 【 allocateNormal 】
                 allocateNormal(buf, reqCapacity, normCapacity);
             }
 
@@ -219,22 +247,30 @@ abstract class PoolArena<T> implements PoolArenaMetric {
             return;
         }
         if (normCapacity <= chunkSize) {
+            // 首先从缓存中，进行内存分配
             if (cache.allocateNormal(this, buf, reqCapacity, normCapacity)) {
                 // was able to allocate out of the cache so move on
                 return;
             }
             synchronized (this) {
+                /**
+                 * 分配不成功，做实际的内存分配
+                 * 【 allocateNormal 】
+                 *
+                 */
                 allocateNormal(buf, reqCapacity, normCapacity);
                 ++allocationsNormal;
             }
         } else {
             // Huge allocations are never served via the cache so just call allocateHuge
+            // 大于这个值，不再缓存中分配
             allocateHuge(buf, reqCapacity);
         }
     }
 
     // Method must be called inside synchronized(this) { ... } block
     private void allocateNormal(PooledByteBuf<T> buf, int reqCapacity, int normCapacity) {
+        // 在原有 chunk 上进行内存分配
         if (q050.allocate(buf, reqCapacity, normCapacity) || q025.allocate(buf, reqCapacity, normCapacity) ||
             q000.allocate(buf, reqCapacity, normCapacity) || qInit.allocate(buf, reqCapacity, normCapacity) ||
             q075.allocate(buf, reqCapacity, normCapacity)) {
@@ -242,7 +278,14 @@ abstract class PoolArena<T> implements PoolArenaMetric {
         }
 
         // Add a new chunk.
+        // 创建 Chunk 进行内存分配
         PoolChunk<T> c = newChunk(pageSize, maxOrder, pageShifts, chunkSize);
+        /**
+         * 进行内存分配
+         * 【 allocate 】
+         *
+         * 判断是 在Page、还是SubPage上进行内存分配
+         */
         boolean success = c.allocate(buf, reqCapacity, normCapacity);
         assert success;
         qInit.add(c);
@@ -334,16 +377,21 @@ abstract class PoolArena<T> implements PoolArenaMetric {
         return table[tableIdx];
     }
 
+    /**
+     * 规格化
+     * @param reqCapacity
+     * @return
+     */
     int normalizeCapacity(int reqCapacity) {
         checkPositiveOrZero(reqCapacity, "reqCapacity");
 
         if (reqCapacity >= chunkSize) {
             return directMemoryCacheAlignment == 0 ? reqCapacity : alignCapacity(reqCapacity);
         }
-
+        // 如果大于 tiny 类型的大小。（tiny）
         if (!isTiny(reqCapacity)) { // >= 512
             // Doubled
-
+            // 找到 2 的平方数组，确定数值大于等于 `reqCapacity`
             int normalizedCapacity = reqCapacity;
             normalizedCapacity --;
             normalizedCapacity |= normalizedCapacity >>>  1;
@@ -366,10 +414,11 @@ abstract class PoolArena<T> implements PoolArenaMetric {
         }
 
         // Quantum-spaced
+        // 如果是 16的倍数，
         if ((reqCapacity & 15) == 0) {
             return reqCapacity;
         }
-
+        // 不是16的倍数，变成最小大于当前值的值+16
         return (reqCapacity & ~15) + 16;
     }
 
@@ -734,6 +783,7 @@ abstract class PoolArena<T> implements PoolArenaMetric {
                         allocateDirect(chunkSize), pageSize, maxOrder,
                         pageShifts, chunkSize, 0);
             }
+            // 通过JDK的API申请了一块直接内存
             final ByteBuffer memory = allocateDirect(chunkSize
                     + directMemoryCacheAlignment);
             return new PoolChunk<ByteBuffer>(this, memory, pageSize,
@@ -769,7 +819,12 @@ abstract class PoolArena<T> implements PoolArenaMetric {
 
         @Override
         protected PooledByteBuf<ByteBuffer> newByteBuf(int maxCapacity) {
+            // 是否支持，unsafe.
             if (HAS_UNSAFE) {
+                /**
+                 * 支持 unsafe。
+                 *  【 PooledUnsafeDirectByteBuf.newInstance 】
+                 */
                 return PooledUnsafeDirectByteBuf.newInstance(maxCapacity);
             } else {
                 return PooledDirectByteBuf.newInstance(maxCapacity);

@@ -104,8 +104,10 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
     @Override
     public ByteBuf buffer() {
         if (directByDefault) {
+            // 堆外 【 directBuffer 】
             return directBuffer();
         }
+        // 堆内 【 heapBuffer 】
         return heapBuffer();
     }
 
@@ -165,6 +167,13 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
             return emptyBuf;
         }
         validate(initialCapacity, maxCapacity);
+
+        /**
+         * 【newHeapBuffer 】
+         * 区分
+         * 池化 {@link PooledByteBufAllocator#newHeapBuffer(int, int)}
+         * 非池化 {@link UnpooledByteBufAllocator#newHeapBuffer(int, int)}
+         */
         return newHeapBuffer(initialCapacity, maxCapacity);
     }
 
@@ -184,6 +193,12 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
             return emptyBuf;
         }
         validate(initialCapacity, maxCapacity);
+        /**
+         * 【 newDirectBuffer 】
+         *  区分
+         *  池化 {@link PooledByteBufAllocator#newDirectBuffer(int, int)}
+         *  非池化 {@link UnpooledByteBufAllocator#newDirectBuffer(int, int)}
+         */
         return newDirectBuffer(initialCapacity, maxCapacity);
     }
 

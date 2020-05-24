@@ -79,6 +79,9 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
 
     @Override
     protected ByteBuf newHeapBuffer(int initialCapacity, int maxCapacity) {
+        /**
+         * PlatformDependent.hasUnsafe() 是否支持 `unsafe`
+         */
         return PlatformDependent.hasUnsafe() ?
                 new InstrumentedUnpooledUnsafeHeapByteBuf(this, initialCapacity, maxCapacity) :
                 new InstrumentedUnpooledHeapByteBuf(this, initialCapacity, maxCapacity);
@@ -134,6 +137,17 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         metric.heapCounter.add(-amount);
     }
 
+    /**
+     * InstrumentedUnpooledUnsafeHeapByteBuf
+     * InstrumentedUnpooledHeapByteBuf
+     *
+     * 都是调用 `UnpooledHeapByteBuf的构造方法`
+     *
+     * 区别在：
+     *  1、getByte()
+     *      1、unsafe -> UnsafeByteBufUtil.getByte(array, index);
+     *      2、       -> HeapByteBufUtil.getByte(array, index);
+     */
     private static final class InstrumentedUnpooledUnsafeHeapByteBuf extends UnpooledUnsafeHeapByteBuf {
         InstrumentedUnpooledUnsafeHeapByteBuf(UnpooledByteBufAllocator alloc, int initialCapacity, int maxCapacity) {
             super(alloc, initialCapacity, maxCapacity);
