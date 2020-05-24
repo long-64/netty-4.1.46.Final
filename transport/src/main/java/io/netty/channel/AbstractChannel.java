@@ -256,6 +256,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
     @Override
     public ChannelFuture connect(SocketAddress remoteAddress, ChannelPromise promise) {
+        /**
+         * {@link DefaultChannelPipeline#connect(SocketAddress, ChannelPromise)}
+         */
         return pipeline.connect(remoteAddress, promise);
     }
 
@@ -516,8 +519,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 boolean firstRegistration = neverRegistered;
 
                 /**
-                 * 实现
                  * {@link AbstractNioChannel#doRegister()}
+                 *
+                 * 这里我们将SocketChannel注册到与eventLoop关联的Selector上
                  */
                 doRegister();
                 neverRegistered = false;

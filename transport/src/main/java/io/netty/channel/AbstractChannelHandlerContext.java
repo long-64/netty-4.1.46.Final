@@ -144,6 +144,10 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         return this;
     }
 
+    /**
+     * 循环，将 自定义Handler 添加到 Pipeline 中
+     * @param next
+     */
     static void invokeChannelRegistered(final AbstractChannelHandlerContext next) {
         EventExecutor executor = next.executor();
         if (executor.inEventLoop()) {
@@ -165,6 +169,10 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
                 /**
                  *
                  * {@link ChannelInitializer#channelRegistered(ChannelHandlerContext)}
+                 *
+                 * 1、循环执行，从Head开始遍历 Pipeline 的双向链表。
+                 * 2、找到第一个属性inbound为true的ChannelHandlerContext实例
+                 *
                  */
                 ((ChannelInboundHandler) handler()).channelRegistered(this);
             } catch (Throwable t) {
@@ -213,6 +221,10 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         return this;
     }
 
+    /**
+     * inbound 事件传播，证明Pipeline 中传播的，起点是 Head.
+     * @param next
+     */
     static void invokeChannelActive(final AbstractChannelHandlerContext next) {
         EventExecutor executor = next.executor();
         if (executor.inEventLoop()) {
@@ -227,9 +239,19 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         }
     }
 
+    /**
+     * 从链表中，查找，inbound 属性为 true 的Context，
+     */
     private void invokeChannelActive() {
         if (invokeHandler()) {
             try {
+                /**
+                 * 如果用户没有实现，
+                 * {@link ChannelInboundHandlerAdapter#channelActive(ChannelHandlerContext)}
+                 *
+                 * 最后一个节点。
+                 * {@link io.netty.channel.DefaultChannelPipeline.TailContext#channelActive(ChannelHandlerContext)}
+                 */
                 ((ChannelInboundHandler) handler()).channelActive(this);
             } catch (Throwable t) {
                 notifyHandlerException(t);
@@ -530,9 +552,16 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
             return promise;
         }
 
+        /**
+         * findContextOutbound 当前Context 为起点，
+         * 向Pipeline中Context双向链表的前端寻找第一个Outbound属性为true的Context
+         */
         final AbstractChannelHandlerContext next = findContextOutbound(MASK_CONNECT);
         EventExecutor executor = next.executor();
         if (executor.inEventLoop()) {
+            /**
+             * 调用它的invokeConnect()方法，这个方法会调用Context关联的ChannelHandler的connect()方法
+             */
             next.invokeConnect(remoteAddress, localAddress, promise);
         } else {
             safeExecute(executor, new Runnable() {
@@ -548,6 +577,14 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
     private void invokeConnect(SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise) {
         if (invokeHandler()) {
             try {
+                /**
+                 * 如果没有重新，执行,寻找下一个Handler。
+                 * {@link ChannelOutboundHandlerAdapter#connect(ChannelHandlerContext, SocketAddress, SocketAddress, ChannelPromise)}
+                 *
+                 * 最终找到最后, HeadContext,Handler 处理
+                 *
+                 * {@link io.netty.channel.DefaultChannelPipeline.HeadContext#connect(ChannelHandlerContext, SocketAddress, SocketAddress, ChannelPromise)}
+                 */
                 ((ChannelOutboundHandler) handler()).connect(this, remoteAddress, localAddress, promise);
             } catch (Throwable t) {
                 notifyOutboundHandlerException(t, promise);
@@ -909,6 +946,11 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         return false;
     }
 
+    /**
+     * 当前 Context 为起点，向后遍历，Head -> xxx
+     * @param mask
+     * @return
+     */
     private AbstractChannelHandlerContext findContextInbound(int mask) {
         AbstractChannelHandlerContext ctx = this;
         do {
@@ -917,6 +959,11 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         return ctx;
     }
 
+    /**
+     * 当前Context 为起点，向前遍历, xx <- Tail
+     * @param mask
+     * @return
+     */
     private AbstractChannelHandlerContext findContextOutbound(int mask) {
         AbstractChannelHandlerContext ctx = this;
         do {

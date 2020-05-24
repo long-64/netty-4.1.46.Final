@@ -48,6 +48,10 @@ public class ChannelOutboundHandlerAdapter extends ChannelHandlerAdapter impleme
     @Override
     public void connect(ChannelHandlerContext ctx, SocketAddress remoteAddress,
             SocketAddress localAddress, ChannelPromise promise) throws Exception {
+        /**
+         * 有调回 AbstractChannelHandlerContext 方法，
+         * {@link AbstractChannelHandlerContext#connect(SocketAddress, SocketAddress)}
+         */
         ctx.connect(remoteAddress, localAddress, promise);
     }
 

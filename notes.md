@@ -35,4 +35,10 @@
 #### 初始化
 - `AbstractChannel 构造函数` -> DefaultChannelPipeline() 
 
+#### outbound 事件传播
+- Bootstrap # connect() -> doResolveAndConnect() -> doResolveAndConnect0() -> doConnect() -> 
+    - DefaultChannelPipeline#connect() -> AbstractNioUnsafe#connect()  
+ 
+#### Inbound 事件传播
+- 在出站， AbstractNioUnsafe#connect() -》fulfillConnectPromise() 产生ChannelActive事件，开始入站流程。
 

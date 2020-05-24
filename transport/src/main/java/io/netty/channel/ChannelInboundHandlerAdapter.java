@@ -66,6 +66,9 @@ public class ChannelInboundHandlerAdapter extends ChannelHandlerAdapter implemen
     @Skip
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        /**
+         * 由调回，{@link AbstractChannelHandlerContext#fireChannelActive()}
+         */
         ctx.fireChannelActive();
     }
 

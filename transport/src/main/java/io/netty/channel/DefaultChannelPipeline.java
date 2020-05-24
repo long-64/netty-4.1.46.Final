@@ -224,7 +224,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             /**
              * 这个Handler创建一个对应的DefaultChannelHandlerContext实例，并与之关联起来（Context中有一个Handler属性保存着对应的Handler实例
              *
-             * filterName() 生产一个名字
+             * filterName() 给 channelHandler 命名
              */
             newCtx = newContext(group, filterName(name, handler), handler);
 
@@ -305,6 +305,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
     private String filterName(String name, ChannelHandler handler) {
         if (name == null) {
+            // [ generateName ]
             return generateName(handler);
         }
         checkDuplicateName(name);
@@ -416,6 +417,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         Class<?> handlerType = handler.getClass();
         String name = cache.get(handlerType);
         if (name == null) {
+            /**
+             * StringUtil.simpleClassName(handlerType) + "#0"
+             * xxxHandler + "#0"
+             */
             name = generateName0(handlerType);
             cache.put(handlerType, name);
         }
@@ -1002,6 +1007,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
     @Override
     public final ChannelFuture connect(SocketAddress remoteAddress, ChannelPromise promise) {
+        /**
+         * outbound 事件传播
+         */
         return tail.connect(remoteAddress, promise);
     }
 
@@ -1367,6 +1375,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
                 ChannelHandlerContext ctx,
                 SocketAddress remoteAddress, SocketAddress localAddress,
                 ChannelPromise promise) {
+            /**
+             * {@link io.netty.channel.nio.AbstractNioChannel.AbstractNioUnsafe#connect(SocketAddress, SocketAddress, ChannelPromise)}
+             */
             unsafe.connect(remoteAddress, localAddress, promise);
         }
 

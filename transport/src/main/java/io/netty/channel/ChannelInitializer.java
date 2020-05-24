@@ -81,6 +81,11 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
         if (initChannel(ctx)) {
             // we called initChannel(...) so we need to call now pipeline.fireChannelRegistered() to ensure we not
             // miss an event.
+            /**
+             * {@link DefaultChannelPipeline#fireChannelRegistered()}
+             *
+             * 这里是循环注册，
+             */
             ctx.pipeline().fireChannelRegistered();
 
             // We are done with init the Channel, removing all the state for the Channel now.
