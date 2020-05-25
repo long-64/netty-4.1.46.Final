@@ -141,12 +141,18 @@ public abstract class Recycler<T> {
 
     protected Recycler(int maxCapacityPerThread, int maxSharedCapacityFactor,
                        int ratio, int maxDelayedQueuesPerThread) {
+        // interval = 7
         interval = safeFindNextPositivePowerOfTwo(ratio);
         if (maxCapacityPerThread <= 0) {
             this.maxCapacityPerThread = 0;
             this.maxSharedCapacityFactor = 1;
             this.maxDelayedQueuesPerThread = 0;
         } else {
+            /**
+             * maxCapacityPerThread = 4* 1024
+             * maxSharedCapacityFactor = 2
+             * maxDelayedQueuesPerThread = CPU 核数 * 2
+             */
             this.maxCapacityPerThread = maxCapacityPerThread;
             this.maxSharedCapacityFactor = max(1, maxSharedCapacityFactor);
             this.maxDelayedQueuesPerThread = max(0, maxDelayedQueuesPerThread);
@@ -158,7 +164,13 @@ public abstract class Recycler<T> {
         if (maxCapacityPerThread == 0) {
             return newObject((Handle<T>) NOOP_HANDLE);
         }
+        /**
+         * 1、从 FastThreadLocal 中获取当前线程 Stack。
+         * 2、从 stack.pop 中一个 DefaultHandle。
+         *   1、第一次null，创建一个 `DefaultHandle`
+         */
         Stack<T> stack = threadLocal.get();
+        // 【 pop 】
         DefaultHandle<T> handle = stack.pop();
         if (handle == null) {
             handle = stack.newHandle();
@@ -497,13 +509,21 @@ public abstract class Recycler<T> {
 
         Stack(Recycler<T> parent, Thread thread, int maxCapacity, int maxSharedCapacityFactor,
               int interval, int maxDelayedQueues) {
+            // 表示 Recycler 对象自身
             this.parent = parent;
+            // 当前stack 绑定那个线程
             threadRef = new WeakReference<Thread>(thread);
+            // 当前stack 最大容量，最多能盛放多少个元素
             this.maxCapacity = maxCapacity;
             availableSharedCapacity = new AtomicInteger(max(maxCapacity / maxSharedCapacityFactor, LINK_CAPACITY));
+            // stack 中存储的对象，类型为 DefaultHandle. 可以被外部对象引用，从而实现回收。
             elements = new DefaultHandle[min(INITIAL_CAPACITY, maxCapacity)];
             this.interval = interval;
             handleRecycleCount = interval; // Start at interval so the first one will be recycled.
+            /**
+             * 一个线程创建的对象，有可能会被另一个线程释放，而另一个线程释放的对象不会放在当前线程Stack中。
+             * 而是存放在一个叫做 WeakOrderQueue 的数据结构中。里面存放一个个 DefaultHandle
+             */
             this.maxDelayedQueues = maxDelayedQueues;
         }
 
@@ -532,6 +552,7 @@ public abstract class Recycler<T> {
         DefaultHandle<T> pop() {
             int size = this.size;
             if (size == 0) {
+                // 这个方法是异线程回收对象的方法。
                 if (!scavenge()) {
                     return null;
                 }

@@ -67,6 +67,12 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
 
     public static InternalThreadLocalMap get() {
         Thread thread = Thread.currentThread();
+        /**
+         * 判断，当前线程是否 `FastThreadLocalThread`
+         *  1、{@link #fastGet(FastThreadLocalThread)}
+         *
+         *  2、{@link #slowGet()}
+         */
         if (thread instanceof FastThreadLocalThread) {
             return fastGet((FastThreadLocalThread) thread);
         } else {
@@ -75,6 +81,13 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
     }
 
     private static InternalThreadLocalMap fastGet(FastThreadLocalThread thread) {
+        /**
+         * FastThreadLocalThread 内部维护一个 {@link InternalThreadLocalMap}
+         *
+         * 1、new InternalThreadLocalMap()
+         *    1、创建一个 长度为32的数组，并将数组中的每一个对象都设置为UNSET，UNSET是一个Object的对象，表示该下标的值没有被设置
+         *
+         */
         InternalThreadLocalMap threadLocalMap = thread.threadLocalMap();
         if (threadLocalMap == null) {
             thread.setThreadLocalMap(threadLocalMap = new InternalThreadLocalMap());
@@ -83,6 +96,12 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
     }
 
     private static InternalThreadLocalMap slowGet() {
+        /**
+         * ThreadLocal -> JDK (ThreadLocal)
+         * 1、第一次，InternalThreadLocalMap 有可能为 null，
+         * 2、需要新建一个 `InternalThreadLocalMap`
+         * 3、并设置在 ThreadLocal 中。
+         */
         ThreadLocal<InternalThreadLocalMap> slowThreadLocalMap = UnpaddedInternalThreadLocalMap.slowThreadLocalMap;
         InternalThreadLocalMap ret = slowThreadLocalMap.get();
         if (ret == null) {
@@ -106,6 +125,7 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
     }
 
     public static int nextVariableIndex() {
+        // 进行原子自增。
         int index = nextIndex.getAndIncrement();
         if (index < 0) {
             nextIndex.decrementAndGet();
@@ -285,6 +305,9 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
     }
 
     public Object indexedVariable(int index) {
+        /**
+         * indexedVariables， = InternalThreadLocalMap对象中维护的数组，初始值32.
+         */
         Object[] lookup = indexedVariables;
         return index < lookup.length? lookup[index] : UNSET;
     }
@@ -293,12 +316,20 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
      * @return {@code true} if and only if a new thread-local variable has been created
      */
     public boolean setIndexedVariable(int index, Object value) {
+        /**
+         * indexedVariables  = InternalThreadLocalMap对象中维护的数组，初始值32
+         * 则直接通过下标 `index` 设置新创建的线程共享对象
+         */
         Object[] lookup = indexedVariables;
         if (index < lookup.length) {
             Object oldValue = lookup[index];
             lookup[index] = value;
             return oldValue == UNSET;
         } else {
+            /**
+             * index > indexedVariables.length
+             * 【 expandIndexedVariableTableAndSet 】将数组进行扩容。
+             */
             expandIndexedVariableTableAndSet(index, value);
             return true;
         }
@@ -321,6 +352,9 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
         indexedVariables = newArray;
     }
 
+    /**
+     * 根据 index，将值设置为 UNSET.
+     */
     public Object removeIndexedVariable(int index) {
         Object[] lookup = indexedVariables;
         if (index < lookup.length) {

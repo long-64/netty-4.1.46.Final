@@ -125,6 +125,10 @@ public class FastThreadLocal<V> {
     private final int index;
 
     public FastThreadLocal() {
+        /**
+         * 【 nextVariableIndex 】进行原子自增
+         *  {@link #get()} 中会使用 `index`
+         */
         index = InternalThreadLocalMap.nextVariableIndex();
     }
 
@@ -133,12 +137,26 @@ public class FastThreadLocal<V> {
      */
     @SuppressWarnings("unchecked")
     public final V get() {
+        // 【 get 】
         InternalThreadLocalMap threadLocalMap = InternalThreadLocalMap.get();
+        /**
+         * 获取 index 下的Object 对象。【 indexedVariable 】
+         * 1、第一次获取对象。`indexedVariables` 未进行初始化。返回, UNSET
+         * 2、如果 index 超过，对象数组长度（indexedVariables）后，返回，UNSET,在 `initialize 中进行扩容`
+         */
         Object v = threadLocalMap.indexedVariable(index);
         if (v != InternalThreadLocalMap.UNSET) {
             return (V) v;
         }
-
+        /**
+         * 1、第一次获取对象v时只能获取到UNSET对象，因为该对象并没有保存在ThreadLocalMap中的数组IndexedVariables中，
+         *  所以第一次获取在if判断中为false时，会执行到initialize()方法中
+         *
+         * 2、index > indexedVariables.length,
+         *  需要，对数组 （indexedVariables ）进行扩容。
+         *
+         * 【 initialize 】
+         */
         return initialize(threadLocalMap);
     }
 
@@ -178,7 +196,7 @@ public class FastThreadLocal<V> {
         } catch (Exception e) {
             PlatformDependent.throwException(e);
         }
-
+        // 【 setIndexedVariable 】
         threadLocalMap.setIndexedVariable(index, v);
         addToVariablesToRemove(threadLocalMap, this);
         return v;
@@ -200,15 +218,20 @@ public class FastThreadLocal<V> {
      * Set the value for the specified thread local map. The specified thread local map must be for the current thread.
      */
     public final void set(InternalThreadLocalMap threadLocalMap, V value) {
+
         if (value != InternalThreadLocalMap.UNSET) {
+            // 【 setKnownNotUnset 】
             setKnownNotUnset(threadLocalMap, value);
         } else {
+            // 如果 value == UNSET 直接 [remove]
             remove(threadLocalMap);
         }
     }
 
     /**
      * @return see {@link InternalThreadLocalMap#setIndexedVariable(int, Object)}.
+     *
+     * 1、则直接通过下标 `index` 设置新创建的线程共享对象
      */
     private void setKnownNotUnset(InternalThreadLocalMap threadLocalMap, V value) {
         if (threadLocalMap.setIndexedVariable(index, value)) {
@@ -248,9 +271,11 @@ public class FastThreadLocal<V> {
             return;
         }
 
+        // 根据 index，将值设置为 UNSET. `【 removeIndexedVariable 】`
         Object v = threadLocalMap.removeIndexedVariable(index);
         removeFromVariablesToRemove(threadLocalMap, this);
 
+        // 判断如果设置的值不是UNSET对象，则调用onRemoval()方法
         if (v != InternalThreadLocalMap.UNSET) {
             try {
                 onRemoval((V) v);
