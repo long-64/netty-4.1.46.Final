@@ -159,6 +159,18 @@ public abstract class Recycler<T> {
         }
     }
 
+    /**
+     * GET 流程
+     * 1、从 FastThreadLocal。获取到对应 Stack。
+     * 2、从 Stack 找  WeakOrderQueue -》 Link -》 DefaultHandle。
+     *
+     *
+     *
+     * Stack 中包含多个 WeakOrderQueue 链表的形式。
+     *      WeakOrderQueue 中包含多个
+     *          Link 包含 16个 DefaultHandle 双向链表的形式。
+     *
+     */
     @SuppressWarnings("unchecked")
     public final T get() {
         if (maxCapacityPerThread == 0) {
@@ -222,6 +234,13 @@ public abstract class Recycler<T> {
             this.stack = stack;
         }
 
+        /**
+         * 回收对象。流程
+         * 1、获取 Stack。
+         *    1、创建Stack 和当前是否是一个线程。
+         *      2、
+         *
+         */
         @Override
         public void recycle(Object object) {
             if (object != value) {
@@ -232,7 +251,7 @@ public abstract class Recycler<T> {
             if (lastRecycledId != recycleId || stack == null) {
                 throw new IllegalStateException("recycled already");
             }
-
+            // 【 push】
             stack.push(this);
         }
     }
@@ -252,11 +271,19 @@ public abstract class Recycler<T> {
         static final WeakOrderQueue DUMMY = new WeakOrderQueue();
 
         // Let Link extend AtomicInteger for intrinsics. The Link itself will be used as writerIndex.
+
+        /**
+         * 1、WeakOrderQueue 多个Link
+         * 2、一个Link（存放16个 DefaultHandle）
+         *
+         *
+         */
         @SuppressWarnings("serial")
         static final class Link extends AtomicInteger {
             final DefaultHandle<?>[] elements = new DefaultHandle[LINK_CAPACITY];
-
+            // 读指针。
             int readIndex;
+            // 指向下一个 Link
             Link next;
         }
 
@@ -334,6 +361,10 @@ public abstract class Recycler<T> {
             interval = 0;
         }
 
+        /**
+         * head 头节点
+         * tail 尾节点
+         */
         private WeakOrderQueue(Stack<?> stack, Thread thread) {
             super(thread);
             tail = new Link();
@@ -375,6 +406,10 @@ public abstract class Recycler<T> {
         }
 
         void add(DefaultHandle<?> handle) {
+            /**
+             * 表示Handle 上次回收的ID。
+             * ID：表示 weakOrderQueue 的ID。
+             */
             handle.lastRecycledId = id;
 
             // While we also enforce the recycling ratio one we transfer objects from the WeakOrderQueue to the Stack
@@ -387,23 +422,33 @@ public abstract class Recycler<T> {
             }
             handleRecycleCount = 0;
 
+            // 表示获取当前WeakOrderQueue 中指向最后一个 Link 指针，也就是尾指针。
             Link tail = this.tail;
             int writeIndex;
+            // Link 中 元素等于 16个，需要进行扩容。
             if ((writeIndex = tail.get()) == LINK_CAPACITY) {
+                /**
+                 * 新创建一个 Link。
+                 * 并将尾节点指向新的 Link。
+                 */
                 Link link = head.newLink();
                 if (link == null) {
                     // Drop it.
                     return;
                 }
+                // 将尾节点指向新的 Link。
                 // We allocate a Link so reserve the space
                 this.tail = tail = tail.next = link;
-
+                // 获取 tail 写指针。
                 writeIndex = tail.get();
             }
+            // 根据指针，写入 `DefaultHandle`
             tail.elements[writeIndex] = handle;
+            // 设置为null，表示当前 Handle 不是通过 Stack进行回收的。
             handle.stack = null;
             // we lazy set to ensure that setting stack to null appears before we unnull it in the owning thread;
             // this also means we guarantee visibility of an element in the queue if we see the index updated
+            // 下一个次，将从 writeIndex + 1 位置往里写。
             tail.lazySet(writeIndex + 1);
         }
 
@@ -504,7 +549,16 @@ public abstract class Recycler<T> {
         DefaultHandle<?>[] elements;
         int size;
         private int handleRecycleCount;
+
+        /**
+         * cursor 寻找当前的WeakOrderQueue、
+         * prev 是 cursor 的上一个节点。
+         */
         private WeakOrderQueue cursor, prev;
+
+        /**
+         * head 指向最近创建与Stack 关联的 WeakOrderQueue.
+         */
         private volatile WeakOrderQueue head;
 
         Stack(Recycler<T> parent, Thread thread, int maxCapacity, int maxSharedCapacityFactor,
@@ -580,6 +634,8 @@ public abstract class Recycler<T> {
 
         private boolean scavenge() {
             // continue an existing scavenge, if any
+
+            // scavengeSome 表示当前对象，已经被回收
             if (scavengeSome()) {
                 return true;
             }
@@ -592,6 +648,7 @@ public abstract class Recycler<T> {
 
         private boolean scavengeSome() {
             WeakOrderQueue prev;
+            // cursor 代表要回收的 WeakOrderQueue.
             WeakOrderQueue cursor = this.cursor;
             if (cursor == null) {
                 prev = null;
@@ -600,11 +657,13 @@ public abstract class Recycler<T> {
                     return false;
                 }
             } else {
+                // cursor 上一个节点。
                 prev = this.prev;
             }
 
             boolean success = false;
             do {
+                //
                 if (cursor.transfer(this)) {
                     success = true;
                     break;
@@ -615,6 +674,7 @@ public abstract class Recycler<T> {
                     // performing a volatile read to confirm there is no data left to collect.
                     // We never unlink the first queue, as we don't want to synchronize on updating the head.
                     if (cursor.hasFinalData()) {
+                        // 表单当前 WeakOrderQueue 中还存在数据。
                         for (;;) {
                             if (cursor.transfer(this)) {
                                 success = true;
@@ -642,6 +702,15 @@ public abstract class Recycler<T> {
             return success;
         }
 
+        /**
+         * 当前线程和创建Stack时候保存的线程同一线程。
+         * 1、同线程回收对象
+         *      pushNow()
+         *
+         * 2、不同线程回收对象
+         *      pushLater()
+         * @param item
+         */
         void push(DefaultHandle<?> item) {
             Thread currentThread = Thread.currentThread();
             if (threadRef.get() == currentThread) {
@@ -659,21 +728,29 @@ public abstract class Recycler<T> {
             if ((item.recycleId | item.lastRecycledId) != 0) {
                 throw new IllegalStateException("recycled already");
             }
+            // OWN_THREAD_ID 在每个recycle 中都是唯一固定的。
             item.recycleId = item.lastRecycledId = OWN_THREAD_ID;
 
             int size = this.size;
+            // 【dropHandle 】
             if (size >= maxCapacity || dropHandle(item)) {
                 // Hit the maximum capacity or should drop - drop the possibly youngest object.
                 return;
             }
+            // 如果Size 大小等于 Stack中的数组Elements 的大小，则将数组Elements 进行扩容。
             if (size == elements.length) {
                 elements = Arrays.copyOf(elements, min(size << 1, maxCapacity));
             }
-
+            // 最后Size，通过数组下标的方式将当前 Handle 设置到Elements 的元素中。并将Size 进行自增。
             elements[size] = item;
             this.size = size + 1;
         }
 
+        /**
+         * 异线程回收对象。不是放在 Stack 中而是，而是在 WeakOrderQueue
+         * 1、异线程
+         *   A创建的、B回收对象。
+         */
         private void pushLater(DefaultHandle<?> item, Thread thread) {
             if (maxDelayedQueues == 0) {
                 // We don't support recycling across threads and should just drop the item on the floor.
@@ -683,25 +760,49 @@ public abstract class Recycler<T> {
             // we don't want to have a ref to the queue as the value in our weak map
             // so we null it out; to ensure there are no races with restoring it later
             // we impose a memory ordering here (no-op on x86)
+            /**
+             * DELAYED_RECYCLED, 是一个 FastThreadLocal 对象，
+             *  {@link DELAYED_RECYCLED} initialValue() 方法，创建一个 WeakHashMap<{@link Stack}, {@link WeakOrderQueue}></>
+             *  1、说明不同 Stack 对应不同的 WeakOrderQueue。
+             *
+             *  这里维护 Stack 和 WeakOrderQueue 对应关系。
+             *
+             *  2、通过 Stack 获取到对应 `WeakOrderQueue`
+             */
             Map<Stack<?>, WeakOrderQueue> delayedRecycled = DELAYED_RECYCLED.get();
             WeakOrderQueue queue = delayedRecycled.get(this);
+            // 说明，线程B，没有回收过线程A的对象。
             if (queue == null) {
+                /**
+                 * delayedRecycled.size() 表示当前线程回收其他创建对象线程的个数。也就是有几个其他线程在当前线程回收对象。
+                 * maxDelayedQueues 表示最多能回收多个对象。如果超过这个值。表示当前线程不能再回收其他线程对象了。
+                 *
+                 * WeakOrderQueue.DUMMY 设置不可用状态。
+                 */
                 if (delayedRecycled.size() >= maxDelayedQueues) {
                     // Add a dummy queue so we know we should drop the object
                     delayedRecycled.put(this, WeakOrderQueue.DUMMY);
                     return;
                 }
                 // Check if we already reached the maximum number of delayed queues and if we can allocate at all.
+                /**
+                 * 【newWeakOrderQueue】 创建 WeakOrderQueue
+                 *
+                 */
                 if ((queue = newWeakOrderQueue(thread)) == null) {
                     // drop object
                     return;
                 }
+                // 将Stack、WeakOrderQueue 进行关联。
                 delayedRecycled.put(this, queue);
             } else if (queue == WeakOrderQueue.DUMMY) {
                 // drop object
                 return;
             }
-
+            /**
+             * 将创建的 WeakOrderQueue 添加Handle.
+             * 【add】
+             */
             queue.add(item);
         }
 
@@ -713,7 +814,12 @@ public abstract class Recycler<T> {
         }
 
         boolean dropHandle(DefaultHandle<?> handle) {
+            // 表示当前对象之前是没有被回收过，
             if (!handle.hasBeenRecycled) {
+                /**
+                 * handleRecycleCount 表示当前位置 Stack 回收多少次对象。
+                 *   回收多少次，不代表回收多少对象。不是每次回收都会被成功保存在Stack。
+                 */
                 if (handleRecycleCount < interval) {
                     handleRecycleCount++;
                     // Drop the object.

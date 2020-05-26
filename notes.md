@@ -61,4 +61,4 @@
 ### FastThreadLocal
 - FastThreadLocal 构造方法。
 ### Recycler 对象回收
-- 
+- recycle 回收，其实调用，`DefaultHandle` 的 recycle() 方法。
