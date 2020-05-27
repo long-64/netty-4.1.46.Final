@@ -102,6 +102,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
                 // TODO: Think about if this is a good exception type
                 throw new IllegalStateException("failed to create a child event loop", e);
             } finally {
+                // 创建失败，则关闭所有已创建的 NioEventLoop
                 if (!success) {
                     for (int j = 0; j < i; j ++) {
                         children[j].shutdownGracefully();
@@ -124,7 +125,8 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
         }
 
         /**
-         * [newChooser] 提供后续
+         * [newChooser]
+         * Netty 线程池选择器，用于创建Channel。
          */
         chooser = chooserFactory.newChooser(children);
 
@@ -137,6 +139,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             }
         };
 
+        // 创建FutureListener 用于关闭时回调
         for (EventExecutor e: children) {
             e.terminationFuture().addListener(terminationListener);
         }
