@@ -7,9 +7,15 @@
 - 实现在 ChannelInitializer
 
 #### ServerBootstrap 
-- 初始化 Channel、和注册到 Selector 流程一致
-##### bind 触发调用链
+- `流程： 初始化、注册、绑定端口`
+##### 初始化 
+- init();
+##### 注册
+- `AbstractChannel # register()`
+
+##### bind 绑定端口
 - 实现 AbstractBootstrap # doBind()
+- `包含, initAndRegister`
 
 ##### 服务端Selector事件轮询 
 - AbstractBootstrap # doBind0().

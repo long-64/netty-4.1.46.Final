@@ -393,6 +393,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
 
         try {
+            // 打开一个新的 Selector
             newSelectorTuple = openSelector();
         } catch (Exception e) {
             logger.warn("Failed to create a new Selector.", e);
@@ -401,6 +402,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
         // Register all channels to the new Selector.
         int nChannels = 0;
+        // 遍历所有老的 Selector 上的 channel 重新注册到新的Selector
         for (SelectionKey key: oldSelector.keys()) {
             Object a = key.attachment();
             try {
@@ -409,10 +411,12 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 }
 
                 int interestOps = key.interestOps();
+                // 取消 SelectionKey
                 key.cancel();
                 SelectionKey newKey = key.channel().register(newSelectorTuple.unwrappedSelector, interestOps, a);
                 if (a instanceof AbstractNioChannel) {
                     // Update SelectionKey
+                    // 将 AbstractNioChannel 成员变量SelectionKey 重新赋值。
                     ((AbstractNioChannel) a).selectionKey = newKey;
                 }
                 nChannels ++;
@@ -434,6 +438,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
         try {
             // time to close the old selector as everything else is registered to the new one
+            // 关闭老的 Selector。
             oldSelector.close();
         } catch (Throwable t) {
             if (logger.isWarnEnabled()) {

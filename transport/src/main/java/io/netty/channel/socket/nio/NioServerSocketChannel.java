@@ -143,6 +143,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
     }
 
     /**
+     * TCP 连接事件
      * 处理 SelectionKey.OP_ACCEPT
      * @param buf
      * @return

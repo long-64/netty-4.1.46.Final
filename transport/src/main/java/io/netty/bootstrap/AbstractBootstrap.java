@@ -275,18 +275,21 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     /**
-     * 触发流程
+     * 发起绑定、并返回绑定结果。
      * @param localAddress
      * @return
      */
     private ChannelFuture doBind(final SocketAddress localAddress) {
-        // 实例化 Channel 并注册Selector。
+        /**
+         * 初始化 channel, 并注册到 Selector
+         * 【initAndRegister 】
+         */
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
         if (regFuture.cause() != null) {
             return regFuture;
         }
-
+        // 如果注册到 bossGroup 上已经完成直接进行绑定操作。
         if (regFuture.isDone()) {
             // At this point we know that the registration was complete and successful.
             ChannelPromise promise = channel.newPromise();
@@ -294,6 +297,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             doBind0(regFuture, channel, localAddress, promise);
             return promise;
         } else {
+            // 如果注册到 bossGroup 还未完成，则添加 Listener 执行完注册操作后再回调 listener。
             // Registration future is almost always fulfilled already, but just in case it's not.
             final PendingRegistrationPromise promise = new PendingRegistrationPromise(channel);
             regFuture.addListener(new ChannelFutureListener() {
@@ -308,11 +312,12 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
                         // Registration was successful, so set the correct executor to use.
                         // See https://github.com/netty/netty/issues/2586
                         promise.registered();
-
+                        // 绑定端口
                         doBind0(regFuture, channel, localAddress, promise);
                     }
                 }
             });
+            // 外部可以用 promise 得到是否绑定完成的结果，或则阻塞直到完成绑定
             return promise;
         }
     }
@@ -331,7 +336,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             /**
              *  @see #init(Channel)
              *  ServerBootstrap 主从模式，workGroup 绑定逻辑。{@link ServerBootstrap#init(Channel)}
-             *  Bootstrap 将Channel 添加到 Pipeline {@link Bootstrap#init(Channel)}
+             *  Bootstrap 将 Channel 添加到 Pipeline {@link Bootstrap#init(Channel)}
              */
             init(channel);
         } catch (Throwable t) {
@@ -346,7 +351,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         }
 
         /**
-         * 将 Channel 注册到 Selector。
+         * 从 bossGroup 选择一个 eventLoop 线程。
+         * 将 (nioServerSocketChannel) 注册到 eventLoop 的 Selector。
          *  最终调用
          *  @see io.netty.channel.AbstractChannel.AbstractUnsafe#register(EventLoop, ChannelPromise)
          *
@@ -377,6 +383,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         //         because bind() or connect() will be executed *after* the scheduled registration task is executed
         //         because register(), bind(), and connect() are all bound to the same thread.
 
+        // 返回注册操作的结果，用于判断是否已注册完成。
         return regFuture;
     }
 

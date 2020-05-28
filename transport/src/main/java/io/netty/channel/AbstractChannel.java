@@ -459,6 +459,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         }
 
         /**
+         * AbstractBootstrap 注册事件
          * AbstractBootstrap `config().group().register(channel);`
          * @param eventLoop
          * @param promise
@@ -482,6 +483,8 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             /**
              * 从Bootstrap的bind()方法一路跟踪到AbstractChannel$AbstractUnsafe的register()方法，
              * 整个代码都是在主线程中运行的，因此上面的eventLoop.inEventLoop()返回值为false
+             *
+             * 判断当前线程是否是对应的eventLoop线程来决定是直接执行register0还是封装一个task交由对应的eventLoop来执行
              */
             if (eventLoop.inEventLoop()) {
                 // 【 register0 】
@@ -524,7 +527,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                  * 这里我们将SocketChannel注册到与eventLoop关联的Selector上
                  */
                 doRegister();
+                // 标记已经注册过一次
                 neverRegistered = false;
+                // 标识已经注册的状态。
                 registered = true;
 
                 // Ensure we call handlerAdded(...) before we actually notify the promise. This is needed as the
@@ -541,14 +546,23 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 pipeline.fireChannelRegistered();
                 // Only fire a channelActive if the channel has never been registered. This prevents firing
                 // multiple channel actives if the channel is deregistered and re-registered.
+                //channel状态是否已绑定或已连接
                 if (isActive()) {
+                    //第一次注册需要触发fireChannelActive事件来设置监听位
                     if (firstRegistration) {
+
+                        /**
+                         * 循环注册事件。
+                         * {@link DefaultChannelPipeline#fireChannelActive()}
+                         */
                         pipeline.fireChannelActive();
+                        //不是第一次注册，但是AutoRead，也需要设置监听位
                     } else if (config().isAutoRead()) {
                         // This channel was registered before and autoRead() is set. This means we need to begin read
                         // again so that we process inbound data.
                         //
                         // See https://github.com/netty/netty/issues/4805
+                        // 设置监听位
                         beginRead();
                     }
                 }
