@@ -236,6 +236,9 @@ public abstract class AbstractNioChannel extends AbstractChannel {
             return javaChannel();
         }
 
+        /**
+         * 真正进行连接操作的核心逻辑
+         */
         @Override
         public final void connect(
                 final SocketAddress remoteAddress, final SocketAddress localAddress, final ChannelPromise promise) {
@@ -250,16 +253,26 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                 }
 
                 boolean wasActive = isActive();
+                /**
+                 * 发起连接，如果成功，则执行fulfillConnectPromise触发fireChannelActive事件，
+                 * 【doConnect】
+                 *
+                 *  Bootstrap
+                 * {@link io.netty.channel.socket.nio.NioSocketChannel#doConnect(SocketAddress, SocketAddress)}
+                 */
                 if (doConnect(remoteAddress, localAddress)) {
                     // 【 fulfillConnectPromise 】
                     fulfillConnectPromise(promise, wasActive);
                 } else {
+                    //如果连接未成功，需要添加处理连接超时的定时任务
                     connectPromise = promise;
                     requestedRemoteAddress = remoteAddress;
 
                     // Schedule connect timeout.
+                    //获取连接超时时间。默认30s，最好根据实际情况使用ChannelOption定制合理的超时时间
                     int connectTimeoutMillis = config().getConnectTimeoutMillis();
                     if (connectTimeoutMillis > 0) {
+                        //根据连接超时时间设置定时任务，如果超时仍未能连接则关闭连接，设置连接结果Promise为失败
                         connectTimeoutFuture = eventLoop().schedule(new Runnable() {
                             @Override
                             public void run() {
@@ -273,6 +286,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                         }, connectTimeoutMillis, TimeUnit.MILLISECONDS);
                     }
 
+                    //为连接结果promise设置Listener，当完成操作后触发回调，如果连接失败，则取消掉处理当前连接超时的定时任务。
                     promise.addListener(new ChannelFutureListener() {
                         @Override
                         public void operationComplete(ChannelFuture future) throws Exception {

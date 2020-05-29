@@ -1,10 +1,18 @@
-#### Bootstrap 
-##### connect 开始出发调用链
+#### Bootstrap
+- `流程：初始化、注册、发起连接` 
+##### 初始化
+- ``
+##### 注册
+- ``
+##### 发起连接
+- `Bootstrap # doResolveAndConnect()`
+
 ###### channel 初始化和注册。
 - 核心实现路径在 Bootstrap # doResolveAndConnect()
 - 将 channel 注册到Selector中。
 ###### handler
 - 实现在 ChannelInitializer
+
 
 #### ServerBootstrap 
 - `流程： 初始化、注册、绑定端口`
@@ -12,7 +20,6 @@
 - init();
 ##### 注册
 - `AbstractChannel # register()`
-
 ##### bind 绑定端口
 - 实现 AbstractBootstrap # doBind()
 - `包含, initAndRegister`

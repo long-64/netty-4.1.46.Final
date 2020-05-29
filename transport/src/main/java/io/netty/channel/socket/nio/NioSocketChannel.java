@@ -313,16 +313,20 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
     @Override
     protected boolean doConnect(SocketAddress remoteAddress, SocketAddress localAddress) throws Exception {
         if (localAddress != null) {
+            // 绑定地址
             doBind0(localAddress);
         }
 
         boolean success = false;
         try {
+            //获取SocketChannel发起连接
             boolean connected = SocketUtils.connect(javaChannel(), remoteAddress);
+            //如果连接失败需要设置`SelectionKey.OP_CONNECT`监听位。
             if (!connected) {
                 selectionKey().interestOps(SelectionKey.OP_CONNECT);
             }
             success = true;
+            // 返回是否连接成功的结果
             return connected;
         } finally {
             if (!success) {

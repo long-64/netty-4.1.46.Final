@@ -322,6 +322,14 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         }
     }
 
+    /**
+     * 【初始化、注册】
+     *  1、初始化 Channel 实例。
+     *  2、init()
+     *  3、注册，nioServerSocketChannel 注册到 Selector。
+     *
+     * @return
+     */
     final ChannelFuture initAndRegister() {
         Channel channel = null;
         try {

@@ -161,15 +161,19 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
          */
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
-
+        // 如果注册到 group 上已经完成直接进行连接操作
         if (regFuture.isDone()) {
             if (!regFuture.isSuccess()) {
                 return regFuture;
             }
-            // 【 doResolveAndConnect0 】
+            /**
+             *  doResolveAndConnect0 】
+             * 发起连接
+             */
             return doResolveAndConnect0(channel, remoteAddress, localAddress, channel.newPromise());
         } else {
             // Registration future is almost always fulfilled already, but just in case it's not.
+            // //如果注册到group上还未完成，则添加Listener当执行完注册操作后再回调Listener进行连接操作
             final PendingRegistrationPromise promise = new PendingRegistrationPromise(channel);
             regFuture.addListener(new ChannelFutureListener() {
                 @Override
@@ -189,10 +193,14 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
                     }
                 }
             });
+            //外部可以用过promise得到是否连接完成的结果，或者阻塞直到完成连接
             return promise;
         }
     }
 
+    /**
+     * 发起连接
+     */
     private ChannelFuture doResolveAndConnect0(final Channel channel, SocketAddress remoteAddress,
                                                final SocketAddress localAddress, final ChannelPromise promise) {
         try {
@@ -201,13 +209,16 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
 
             if (!resolver.isSupported(remoteAddress) || resolver.isResolved(remoteAddress)) {
                 // Resolver has no idea about what to do with the specified remote address or it's resolved already.
-                // [doConnect]
+                /**
+                 * [doConnect]
+                 *  对目标地址，发起连接
+                 */
                 doConnect(remoteAddress, localAddress, promise);
                 return promise;
             }
 
             final Future<SocketAddress> resolveFuture = resolver.resolve(remoteAddress);
-
+            // 解析完成则直接发起连接操作
             if (resolveFuture.isDone()) {
                 final Throwable resolveFailureCause = resolveFuture.cause();
 
@@ -217,6 +228,9 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
                     promise.setFailure(resolveFailureCause);
                 } else {
                     // Succeeded to resolve immediately; cached? (or did a blocking lookup)
+                    /**
+                     * 对目标地址，发起连接
+                     */
                     doConnect(resolveFuture.getNow(), localAddress, promise);
                 }
                 return promise;
@@ -240,17 +254,23 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
         return promise;
     }
 
+    /**
+     * 对目标地址，发起连接
+     */
     private static void doConnect(
             final SocketAddress remoteAddress, final SocketAddress localAddress, final ChannelPromise connectPromise) {
 
         // This method is invoked before channelRegistered() is triggered.  Give user handlers a chance to set up
         // the pipeline in its channelRegistered() implementation.
         final Channel channel = connectPromise.channel();
+
+        // 封装成task任务交由channel对应的eventLoop线程来执行，防止并发操作channel
         channel.eventLoop().execute(new Runnable() {
             @Override
             public void run() {
                 if (localAddress == null) {
                     /**
+                     * 执行，channel的 connect 方法进行连接
                      * Outbound 事件传播
                      * {@link io.netty.channel.AbstractChannel#connect(SocketAddress, ChannelPromise)}
                      */
@@ -258,6 +278,7 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
                 } else {
                     channel.connect(remoteAddress, localAddress, connectPromise);
                 }
+                //如果连接失败则通过回调进行关闭
                 connectPromise.addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
             }
         });

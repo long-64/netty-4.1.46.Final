@@ -487,7 +487,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
              * 判断当前线程是否是对应的eventLoop线程来决定是直接执行register0还是封装一个task交由对应的eventLoop来执行
              */
             if (eventLoop.inEventLoop()) {
-                // 【 register0 】
+                /**
+                 * 【 register0 】
+                 */
                 register0(promise);
             } else {
                 try {
@@ -594,16 +596,18 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                         "is not bound to a wildcard address; binding to a non-wildcard " +
                         "address (" + localAddress + ") anyway as requested.");
             }
-
+            // 完成绑定
             boolean wasActive = isActive();
             try {
+                // 使用原生API 绑定端口
                 doBind(localAddress);
             } catch (Throwable t) {
                 safeSetFailure(promise, t);
                 closeIfClosed();
                 return;
             }
-
+            //如果之前未完成绑定，执行完doBind后isbind方法返回完成绑定，则触发责任链的fireChannelActive事件，
+            // fireChannelActive最终会设置SelectionKey.OP_ACCEPT监听位
             if (!wasActive && isActive()) {
                 invokeLater(new Runnable() {
                     @Override
@@ -612,7 +616,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                     }
                 });
             }
-
+            //设置promise结果为已成功完成绑定操作，外部可以通过bind返回的该promise得知已完成绑定操作。
             safeSetSuccess(promise);
         }
 

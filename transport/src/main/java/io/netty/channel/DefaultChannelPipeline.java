@@ -1367,6 +1367,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         @Override
         public void bind(
                 ChannelHandlerContext ctx, SocketAddress localAddress, ChannelPromise promise) {
+            /**
+             * {@link io.netty.channel.AbstractChannel.AbstractUnsafe#bind(SocketAddress, ChannelPromise)}
+             */
             unsafe.bind(localAddress, promise);
         }
 
