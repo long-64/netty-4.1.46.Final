@@ -38,6 +38,10 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
          *   主要功能是，数组索引循环移位。
          */
         if (isPowerOfTwo(executors.length)) {
+
+            /**
+             * 2 的平方。
+             */
             return new PowerOfTwoEventExecutorChooser(executors);
         } else {
             return new GenericEventExecutorChooser(executors);
@@ -56,6 +60,12 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
             this.executors = executors;
         }
 
+        /**
+         * 每次索引自增后 与数组长度取模。
+         *
+         *    在计算机底层：& 比 % 效率要高。
+         * @return
+         */
         @Override
         public EventExecutor next() {
             return executors[idx.getAndIncrement() & executors.length - 1];

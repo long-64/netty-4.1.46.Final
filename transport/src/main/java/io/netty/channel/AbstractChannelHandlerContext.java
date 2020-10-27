@@ -553,14 +553,14 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         }
 
         /**
-         * findContextOutbound 当前Context 为起点，
+         *  {@link #findContextOutbound} 当前Context 为起点，
          * 向Pipeline中Context双向链表的前端寻找第一个Outbound属性为true的Context
          */
         final AbstractChannelHandlerContext next = findContextOutbound(MASK_CONNECT);
         EventExecutor executor = next.executor();
         if (executor.inEventLoop()) {
             /**
-             * 调用它的invokeConnect()方法，这个方法会调用Context关联的ChannelHandler的connect()方法
+             * 调用 {@link AbstractChannelHandlerContext#invokeConnect，这个方法会调用Context关联的ChannelHandler的connect()方法
              */
             next.invokeConnect(remoteAddress, localAddress, promise);
         } else {
@@ -961,6 +961,8 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 
     /**
      * 当前Context 为起点，向前遍历, xx <- Tail
+     *
+     *  从 DefaultChannelPipeline 内的双向链表 Tail 开始，不断向前找到第一个 `Outbound` 为true，AbstractChannelHandlerContext
      * @param mask
      * @return
      */

@@ -138,7 +138,12 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         return this;
     }
 
-
+    /**
+     *
+     *  channel： NioSocketChannel 实例。
+     *
+     * @param channel
+     */
     @Override
     void init(Channel channel) {
         // 设置 channel 参数。
@@ -147,7 +152,10 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         setAttributes(channel, attrs0().entrySet().toArray(EMPTY_ATTRIBUTE_ARRAY));
         // 获取负责网络事件的职责链，用于管理和执行，channelHandler
         ChannelPipeline p = channel.pipeline();
-        //workGroup，处理I/O相关操作的线程组
+
+        /**
+         * workGroup，处理I/O相关操作的线程组, 在构造对象时传入的 `childGroup`
+         */
         final EventLoopGroup currentChildGroup = childGroup;
         //创建ServerBootstrap时设置的childHandler
         final ChannelHandler currentChildHandler = childHandler;
@@ -163,7 +171,8 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
          * pipeline 中添加一个 {@link ServerBootstrapAcceptor} 的handler
          *  中的 childGroup 也就是 workerGroup
          *
-         *  {@link ServerBootstrapAcceptor#channelRead(ChannelHandlerContext, Object)}
+         *  {@link ServerBootstrapAcceptor#channelRead(ChannelHandlerContext, Object)} 这个方法是在 Client 连接到 Server 是，Java 底层 Nio 的
+         *      ServerSocketChannel 就会有一个 SelectionKey_OP_ACCEPT 事件就绪，接着就会调用 {@link io.netty.channel.socket.nio.NioServerSocketChannel#doReadMessages(List)}
          *
          */
         p.addLast(new ChannelInitializer<Channel>() {
@@ -179,7 +188,10 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                 ch.eventLoop().execute(new Runnable() {
                     @Override
                     public void run() {
-                        //添加ServerBootstrapAcceptor，主要用于接收TCP连接后初始化并注册NioSocketChannel到workGroup
+                        /**
+                         * 添加ServerBootstrapAcceptor，主要用于接收TCP连接后初始化并注册NioSocketChannel到workGroup
+                         *  {@link ServerBootstrapAcceptor
+                         */
                         pipeline.addLast(new ServerBootstrapAcceptor(
                                 ch, currentChildGroup, currentChildHandler, currentChildOptions, currentChildAttrs));
                     }
@@ -259,7 +271,10 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             setAttributes(child, childAttrs);
 
             try {
-                //将child注册到workGroup线程组上并添加 Listener 用于处理注册失败后的关闭操作
+
+                /**
+                 * 将child注册到workGroup线程组上并添加 Listener 用于处理注册失败后的关闭操作
+                 */
                 childGroup.register(child).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {

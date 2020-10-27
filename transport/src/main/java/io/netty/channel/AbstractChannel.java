@@ -19,6 +19,7 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.nio.AbstractNioChannel;
 import io.netty.channel.socket.ChannelOutputShutdownEvent;
 import io.netty.channel.socket.ChannelOutputShutdownException;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.DefaultAttributeMap;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.internal.ObjectUtil;
@@ -72,8 +73,12 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
     protected AbstractChannel(Channel parent) {
         /**
          * id = 分配唯一ID
-         * unsafe 实例化一个 unsafe 对象 AbstractNioByteChannel.NioByteUnsafe
+         *
+         * unsafe 实例化一个 unsafe 对象 {@link NioSocketChannel#newUnsafe()}  返回 `{@link io.netty.channel.socket.nio.NioSocketChannel.NioSocketChannelUnsafe` 实例。
+         *   是Java 底层 Socket 操作的封装。
+         *
          * pipeline {@link DefaultChannelPipeline#DefaultChannelPipeline(Channel)} 创建实例
+         *      channel : 其实就是 NioSocketChannel 对象。
          */
         this.parent = parent;
         id = newId();
@@ -256,8 +261,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
     @Override
     public ChannelFuture connect(SocketAddress remoteAddress, ChannelPromise promise) {
+
         /**
-         * {@link DefaultChannelPipeline#connect(SocketAddress, ChannelPromise)}
+         *  默认实现 {@link DefaultChannelPipeline#connect(SocketAddress, ChannelPromise)}
          */
         return pipeline.connect(remoteAddress, promise);
     }
@@ -488,7 +494,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
              */
             if (eventLoop.inEventLoop()) {
                 /**
-                 * 【 register0 】
+                 * 【 核心 】{@link #register0(ChannelPromise)}
                  */
                 register0(promise);
             } else {

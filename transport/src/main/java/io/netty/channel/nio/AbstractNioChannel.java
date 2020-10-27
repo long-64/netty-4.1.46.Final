@@ -81,11 +81,16 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         /**
          * 继续调用父类构造器
          * @see io.netty.channel.AbstractChannel#AbstractChannel(Channel)
+         *
+         *  ch: NioSocketChannel。
+         *  readInterestOp: SelectionKey.OP_READ
          */
         super(parent);
         this.ch = ch;
         this.readInterestOp = readInterestOp;
         try {
+
+            // 配置非阻塞。
             ch.configureBlocking(false);
         } catch (IOException e) {
             try {

@@ -80,6 +80,8 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
 
         /**
          * 1、可以指定线程数，若未指定，默认是CPU核数 * 2
+         *      创建 一个大小为 nThreads {@link SingleThreadEventExecutor} 数组。
+         *
          * 2、newChild() 初始化 children 数组。
          *      {@link MultithreadEventExecutorGroup } 内部维护了一个EventExecutor数组，
          *      而Netty的 {@link EventLoopGroup } 的实现机制其实就建立在 {@link MultithreadEventExecutorGroup} 之上。
@@ -92,7 +94,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             try {
 
                 /**
-                 *  返回一个NioEventLoop 实例
+                 *  返回一个NioEventLoop 实例 （同时初始化数组）
                  *
                  * {@link io.netty.channel.nio.NioEventLoopGroup#newChild(Executor, Object...)}
                  */
@@ -126,7 +128,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
 
         /**
          * [newChooser]
-         * Netty 线程池选择器，用于创建Channel。
+         * Netty 线程池选择器，用于创建Channel {@link DefaultEventExecutorChooserFactory#newChooser(EventExecutor[])}
          */
         chooser = chooserFactory.newChooser(children);
 
@@ -153,6 +155,10 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
         return new DefaultThreadFactory(getClass());
     }
 
+    /**
+     * 每当 Netty 需要一个 EventLoop, 都需要调用 next() 方法，获取一个可用 EventLoop.
+     * @return
+     */
     @Override
     public EventExecutor next() {
         return chooser.next();

@@ -115,7 +115,10 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
         if (remoteAddress == null) {
             throw new IllegalStateException("remoteAddress not set");
         }
-        // 1\
+        /**
+         * {@link #doResolveAndConnect(SocketAddress, SocketAddress)}
+         *
+         */
         return doResolveAndConnect(remoteAddress, config.localAddress());
     }
 
@@ -156,8 +159,7 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
      */
     private ChannelFuture doResolveAndConnect(final SocketAddress remoteAddress, final SocketAddress localAddress) {
         /**
-         * 初始化 Channel实例，并 Channel 注册到 Selector。
-         * 【 initAndRegister 】
+         * 初始化 Channel实例，并 Channel 注册到 Selector。{@link AbstractBootstrap#initAndRegister()}
          */
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
@@ -167,8 +169,7 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
                 return regFuture;
             }
             /**
-             *  doResolveAndConnect0 】
-             * 发起连接
+             * 发起连接 {@link #doResolveAndConnect0(Channel, SocketAddress, SocketAddress, ChannelPromise)}
              */
             return doResolveAndConnect0(channel, remoteAddress, localAddress, channel.newPromise());
         } else {
@@ -210,8 +211,7 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
             if (!resolver.isSupported(remoteAddress) || resolver.isResolved(remoteAddress)) {
                 // Resolver has no idea about what to do with the specified remote address or it's resolved already.
                 /**
-                 * [doConnect]
-                 *  对目标地址，发起连接
+                 *  对目标地址，发起连接 {@link #doConnect(SocketAddress, SocketAddress, ChannelPromise)}
                  */
                 doConnect(remoteAddress, localAddress, promise);
                 return promise;
@@ -229,7 +229,7 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
                 } else {
                     // Succeeded to resolve immediately; cached? (or did a blocking lookup)
                     /**
-                     * 对目标地址，发起连接
+                     * 对目标地址，发起连接 {@link #doConnect(SocketAddress, SocketAddress, ChannelPromise)}
                      */
                     doConnect(resolveFuture.getNow(), localAddress, promise);
                 }
@@ -262,6 +262,8 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
 
         // This method is invoked before channelRegistered() is triggered.  Give user handlers a chance to set up
         // the pipeline in its channelRegistered() implementation.
+
+        // 具体实现类: NioSocketChannel.
         final Channel channel = connectPromise.channel();
 
         // 封装成task任务交由channel对应的eventLoop线程来执行，防止并发操作channel
@@ -270,7 +272,7 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
             public void run() {
                 if (localAddress == null) {
                     /**
-                     * 执行，channel的 connect 方法进行连接
+                     * 执行，channel的 connect 方法进行连接 `NioSocketChannel`
                      * Outbound 事件传播
                      * {@link io.netty.channel.AbstractChannel#connect(SocketAddress, ChannelPromise)}
                      */

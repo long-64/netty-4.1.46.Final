@@ -21,6 +21,11 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+/**
+ * 优化 Selector KeySet 操作，
+ *  设计目的:
+ *      简化我们在轮训事件时的操作，不再每次轮训移除Key
+ */
 final class SelectedSelectionKeySet extends AbstractSet<SelectionKey> {
 
     SelectionKey[] keys;
@@ -44,6 +49,11 @@ final class SelectedSelectionKeySet extends AbstractSet<SelectionKey> {
         return true;
     }
 
+    /**
+     * 禁用 remove、contains、
+     * @param o
+     * @return
+     */
     @Override
     public boolean remove(Object o) {
         return false;

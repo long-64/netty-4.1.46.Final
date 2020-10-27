@@ -829,10 +829,15 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
     private void execute(Runnable task, boolean immediate) {
         boolean inEventLoop = inEventLoop();
-        // 添加到任务队列
+        /**
+         *  将线程添加到 EventLoop 的无锁化串行任务队列 {@link #addTask(Runnable)}
+         */
         addTask(task);
         if (!inEventLoop) {
-            // 【 startThread 】NioEventLoop与线程绑定
+
+            /**
+             * NioEventLoop与线程绑定 {@link #startThread()}
+             */
             startThread();
             if (isShutdown()) {
                 boolean reject = false;
@@ -950,11 +955,15 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
      */
     private void startThread() {
         if (state == ST_NOT_STARTED) {
-            // 通过原子变量CAS保证只有一个线程执行
+
+            // TODO 通过原子变量CAS保证只有一个线程执行
             if (STATE_UPDATER.compareAndSet(this, ST_NOT_STARTED, ST_STARTED)) {
                 boolean success = false;
                 try {
-                    // 开启线程
+
+                    /**
+                     * 开启线程 {@link #doStartThread()}
+                     */
                     doStartThread();
                     success = true;
                 } finally {

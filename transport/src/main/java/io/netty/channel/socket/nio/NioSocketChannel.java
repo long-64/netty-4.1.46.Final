@@ -86,7 +86,11 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
      * Create a new instance using the given {@link SelectorProvider}.
      */
     public NioSocketChannel(SelectorProvider provider) {
-        // newSocket. 打开一个新的 SocketChannel 对象
+        /**
+         *  1、{@link #newSocket(SelectorProvider)} 打开一个新的 SocketChannel 对象
+         *
+         *  2、{@link #NioSocketChannel(SocketChannel)}
+         */
         this(newSocket(provider));
     }
 

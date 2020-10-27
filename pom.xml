@@ -378,6 +378,7 @@
     <module>transport-blockhound-tests</module>
     <module>microbench</module>
     <module>bom</module>
+    <module>my-test</module>
   </modules>
 
   <dependencyManagement>

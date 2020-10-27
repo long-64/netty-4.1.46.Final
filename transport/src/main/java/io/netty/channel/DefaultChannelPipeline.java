@@ -1008,7 +1008,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     @Override
     public final ChannelFuture connect(SocketAddress remoteAddress, ChannelPromise promise) {
         /**
-         * outbound 事件传播
+         * outbound 事件传播 {@link AbstractChannelHandlerContext#connect(SocketAddress, SocketAddress, ChannelPromise)}
          */
         return tail.connect(remoteAddress, promise);
     }

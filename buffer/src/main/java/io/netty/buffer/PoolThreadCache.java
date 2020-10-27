@@ -131,8 +131,11 @@ final class PoolThreadCache {
      *  tinySubPageDirectCaches[31] = 缓存中 ByteBuf 大小为 496Byte
      *
      *  tiny 共32种规则。
+     *      1、内部维护 Queue 长度-》512
      *  small 共4种规则，512Byte、1kB、2KB、4KB
+     *      1、内部维护 Queue 长度-》256
      *  normal 共3种规则，8kB、16KB、32KB
+     *      1、内部维护 Queue 长度-》64
      *
      */
     private static <T> MemoryRegionCache<T>[] createSubPageCaches(
@@ -338,6 +341,7 @@ final class PoolThreadCache {
          *  normCapacity >>> 4 相对于，除以16，tiny 缓存数组，每个元素的规则都是16的倍数。
          */
         int idx = PoolArena.tinyIdx(normCapacity);
+        // 返回tiny类型的数组中对应位置的MemoryRegionCache
         if (area.isDirect()) {
             return cache(tinySubPageDirectCaches, idx);
         }
@@ -345,6 +349,10 @@ final class PoolThreadCache {
     }
 
     private MemoryRegionCache<?> cacheForSmall(PoolArena<?> area, int normCapacity) {
+        /**
+         * 计算当前数组下标的索引，由于small类型的内存块大小都是2的指数次幂，因而这里就是将目标内存大小
+         *   除以1024之后计算其偏移量
+         */
         int idx = PoolArena.smallIdx(normCapacity);
         if (area.isDirect()) {
             return cache(smallSubPageDirectCaches, idx);

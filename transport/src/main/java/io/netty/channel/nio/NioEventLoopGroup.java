@@ -20,6 +20,7 @@ import io.netty.channel.EventLoop;
 import io.netty.channel.DefaultSelectStrategyFactory;
 import io.netty.channel.EventLoopTaskQueueFactory;
 import io.netty.channel.MultithreadEventLoopGroup;
+import io.netty.channel.SelectStrategy;
 import io.netty.channel.SelectStrategyFactory;
 import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.EventExecutorChooserFactory;
@@ -91,6 +92,15 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
         this(nThreads, executor, selectorProvider, DefaultSelectStrategyFactory.INSTANCE);
     }
 
+    /**
+     *
+     *  NioEventLoopGroup 最终调用父类 {@link MultithreadEventLoopGroup#MultithreadEventLoopGroup(int, Executor, EventExecutorChooserFactory, Object...)}
+     *
+     * @param nThreads
+     * @param executor
+     * @param selectorProvider
+     * @param selectStrategyFactory
+     */
     public NioEventLoopGroup(int nThreads, Executor executor, final SelectorProvider selectorProvider,
                              final SelectStrategyFactory selectStrategyFactory) {
         super(nThreads, executor, selectorProvider, selectStrategyFactory, RejectedExecutionHandlers.reject());
@@ -142,7 +152,10 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
     @Override
     protected EventLoop newChild(Executor executor, Object... args) throws Exception {
         EventLoopTaskQueueFactory queueFactory = args.length == 4 ? (EventLoopTaskQueueFactory) args[3] : null;
-        // 执行 NioEventLoop 构造器
+
+        /**
+         * 执行 NioEventLoop 构造器 {@link NioEventLoop#NioEventLoop(NioEventLoopGroup, Executor, SelectorProvider, SelectStrategy, RejectedExecutionHandler, EventLoopTaskQueueFactory)}
+         */
         return new NioEventLoop(this, executor, (SelectorProvider) args[0],
             ((SelectStrategyFactory) args[1]).newSelectStrategy(), (RejectedExecutionHandler) args[2], queueFactory);
     }

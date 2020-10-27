@@ -15,7 +15,9 @@
  */
 package io.netty.channel.socket.nio;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelException;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelMetadata;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelOutboundBuffer;
@@ -144,7 +146,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
     }
 
     /**
-     * TCP 连接事件
+     * TCP 连接事件 -> 【 TODO Client 连接到 Server 】
      * 处理 SelectionKey.OP_ACCEPT
      * @param buf
      * @return
@@ -152,10 +154,23 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
      */
     @Override
     protected int doReadMessages(List<Object> buf) throws Exception {
+
+        /**
+         * {@link #javaChannel()} 获取 {@link ServerSocketChannel} 对象。
+         *  {@link SocketUtils#accept(ServerSocketChannel)} 获取客户端新连接的 {@link ServerSocketChannel} 对象
+         */
         SocketChannel ch = SocketUtils.accept(javaChannel());
 
         try {
             if (ch != null) {
+
+                /**
+                 *  1、创建 NioSocketChannel 的父类channel就是 NioServerSocketChannel 实例，
+                 *  2、利用 Netty 的 ChannelPipeline 机制，将读取事件逐级发送到 各个 `Handler` 中，
+                 *      2.1、就会触发 {@link io.netty.bootstrap.ServerBootstrap.ServerBootstrapAcceptor#channelRead(ChannelHandlerContext, Object)}
+                 *
+                 *  {@link NioSocketChannel#NioSocketChannel(Channel, SocketChannel)}
+                 */
                 buf.add(new NioSocketChannel(this, ch));
                 return 1;
             }

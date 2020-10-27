@@ -104,12 +104,16 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * The {@link Class} which is used to create {@link Channel} instances from.
      * You either use this or {@link #channelFactory(io.netty.channel.ChannelFactory)} if your
      * {@link Channel} implementation has no no-args constructor.
+     *
+     *  初始化 Channel。
      */
     public B channel(Class<? extends C> channelClass) {
         /**
          * 实例化 channel 实例，
          * @see io.netty.bootstrap.Bootstrap#connect() 使用
          * 【ReflectiveChannelFactory -》 newChannel 】处理
+         *
+         *  {@link ReflectiveChannelFactory#ReflectiveChannelFactory(Class)} 创建 `Channel` 工厂类
          *
          */
         return channelFactory(new ReflectiveChannelFactory<C>(
@@ -235,6 +239,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     /**
      * Create a new {@link Channel} and bind it.
+     *
+     *  服务端启动代码。
      */
     public ChannelFuture bind() {
         validate();
@@ -242,6 +248,10 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         if (localAddress == null) {
             throw new IllegalStateException("localAddress not set");
         }
+
+        /**
+         * {@link #doBind(SocketAddress)}
+         */
         return doBind(localAddress);
     }
 
@@ -281,8 +291,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      */
     private ChannelFuture doBind(final SocketAddress localAddress) {
         /**
-         * 初始化 channel, 并注册到 Selector
-         * 【initAndRegister 】
+         * 初始化 channel, 并注册到 Selector {@link #initAndRegister()}
          */
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
@@ -293,7 +302,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         if (regFuture.isDone()) {
             // At this point we know that the registration was complete and successful.
             ChannelPromise promise = channel.newPromise();
-            // 轮训事件
+            /**
+             * 轮训事件 {@link #doBind0(ChannelFuture, Channel, SocketAddress, ChannelPromise)}
+             */
             doBind0(regFuture, channel, localAddress, promise);
             return promise;
         } else {
@@ -361,8 +372,10 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         /**
          * 从 bossGroup 选择一个 eventLoop 线程。
          * 将 (nioServerSocketChannel) 注册到 eventLoop 的 Selector。
-         *  最终调用
-         *  @see io.netty.channel.AbstractChannel.AbstractUnsafe#register(EventLoop, ChannelPromise)
+         *
+         *    EventLoop 是 {@link io.netty.channel.MultithreadEventLoopGroup#register(Channel)} 中获取 。
+         *
+         *  最终调用调用 {@link io.netty.channel.AbstractChannel.AbstractUnsafe#register(EventLoop, ChannelPromise)}
          *
          *  Channel的注册过程所做的工作就是将Channel与对应的EventLoop进行关联。
          *  因此，在Netty中，每个Channel都会关联一个特定的EventLoop，
