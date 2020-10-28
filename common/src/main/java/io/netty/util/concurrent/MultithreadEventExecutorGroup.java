@@ -94,9 +94,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             try {
 
                 /**
-                 *  返回一个NioEventLoop 实例 （同时初始化数组）
-                 *
-                 * {@link io.netty.channel.nio.NioEventLoopGroup#newChild(Executor, Object...)}
+                 *  返回一个NioEventLoop 实例 （同时初始化数组）{@link io.netty.channel.nio.NioEventLoopGroup#newChild(Executor, Object...)}
                  */
                 children[i] = newChild(executor, args);
                 success = true;

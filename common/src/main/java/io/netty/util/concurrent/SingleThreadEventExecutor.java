@@ -46,6 +46,11 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 /**
  * Abstract base class for {@link OrderedEventExecutor}'s that execute all its submitted tasks in a single thread.
  *
+ *  是 Netty 对本地线程的一个抽象，内部有一个 Thread 属性，实际上存储一个本地Java 线程。
+ *   因此简单认为：
+ *      一个 NioEventLoop 对象其实就是和一个特定的线程进行绑定。
+ *   核心方法：
+ *      `doStartThread`
  */
 public abstract class SingleThreadEventExecutor extends AbstractScheduledEventExecutor implements OrderedEventExecutor {
 
@@ -827,6 +832,13 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         execute(ObjectUtil.checkNotNull(task, "task"), false);
     }
 
+    /**
+     *
+     *  第一次被调用时，会触发 `startThread` 方法的调用。进而启动 EventLoop 所对应的Java 本地线程。
+     *
+     * @param task
+     * @param immediate
+     */
     private void execute(Runnable task, boolean immediate) {
         boolean inEventLoop = inEventLoop();
         /**

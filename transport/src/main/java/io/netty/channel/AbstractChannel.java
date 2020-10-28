@@ -465,7 +465,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         }
 
         /**
-         * AbstractBootstrap 注册事件
+         * AbstractBootstrap 注册事件 【 TODO channel 与 EventLoop 关联 】
          * AbstractBootstrap `config().group().register(channel);`
          * @param eventLoop
          * @param promise
@@ -483,7 +483,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 return;
             }
 
-            // 将一个EventLoop赋值给AbstractChannel内部的eventLoop属性
+            /**
+             * 【 将一个EventLoop赋值给AbstractChannel内部的eventLoop属性 】
+             */
             AbstractChannel.this.eventLoop = eventLoop;
 
             /**
