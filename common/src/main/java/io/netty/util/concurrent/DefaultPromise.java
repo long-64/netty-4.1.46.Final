@@ -235,22 +235,32 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
 
     @Override
     public Promise<V> await() throws InterruptedException {
+
+        // 如果异常完成，直接返回。
         if (isDone()) {
             return this;
         }
 
+        // 线程中断，
         if (Thread.interrupted()) {
             throw new InterruptedException(toString());
         }
 
+        // 检查死循环
         checkDeadLock();
 
         synchronized (this) {
             while (!isDone()) {
+
+                // 递增计数器（用于记录有多少个线程在等待该promise返回结果）
                 incWaiters();
                 try {
+
+                    // 阻塞等待结果
                     wait();
                 } finally {
+
+                    // 递减计数器
                     decWaiters();
                 }
             }
@@ -400,7 +410,15 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
 
     @Override
     public Promise<V> sync() throws InterruptedException {
+
+        /**
+         * 阻塞等待 {@link #await()}
+         */
         await();
+
+        /**
+         * 如果有异常则抛出 {@link #rethrowIfFailed()}
+         */
         rethrowIfFailed();
         return this;
     }

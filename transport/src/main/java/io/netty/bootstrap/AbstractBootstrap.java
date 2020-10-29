@@ -298,7 +298,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         if (regFuture.cause() != null) {
             return regFuture;
         }
-        // 如果注册到 bossGroup 上已经完成直接进行绑定操作。
+        // 如果注册到 bossGroup 上已经完成直接进行绑定操作。【 绑定成功 】
         if (regFuture.isDone()) {
             // At this point we know that the registration was complete and successful.
             ChannelPromise promise = channel.newPromise();
@@ -307,9 +307,13 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
              */
             doBind0(regFuture, channel, localAddress, promise);
             return promise;
+
+        // 注册还没有完成。
         } else {
-            // 如果注册到 bossGroup 还未完成，则添加 Listener 执行完注册操作后再回调 listener。
-            // Registration future is almost always fulfilled already, but just in case it's not.
+
+            /**
+             * 如果注册到 bossGroup 还未完成，则添加 Listener 执行完注册操作后再回调 listener。
+             */
             final PendingRegistrationPromise promise = new PendingRegistrationPromise(channel);
             regFuture.addListener(new ChannelFutureListener() {
                 @Override
@@ -387,6 +391,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
          *
          */
         ChannelFuture regFuture = config().group().register(channel);
+
+        // 如果异常不为null，则意味着底层的I/O已经失败，并且promise设置了失败异常
         if (regFuture.cause() != null) {
             if (channel.isRegistered()) {
                 channel.close();

@@ -17,6 +17,8 @@ package io.netty.util.concurrent;
 
 /**
  * Special {@link Future} which is writable.
+ *
+ *  Promise接口也是Future的扩展接口，它表示一种可写的Future，可以自定义设置异步执行的结果
  */
 public interface Promise<V> extends Future<V> {
 
@@ -25,6 +27,8 @@ public interface Promise<V> extends Future<V> {
      * listeners.
      *
      * If it is success or failed already it will throw an {@link IllegalStateException}.
+     *
+     * 设置成功状态并回调
      */
     Promise<V> setSuccess(V result);
 
@@ -35,6 +39,8 @@ public interface Promise<V> extends Future<V> {
      * @return {@code true} if and only if successfully marked this future as
      *         a success. Otherwise {@code false} because this future is
      *         already marked as either a success or a failure.
+     *
+     *
      */
     boolean trySuccess(V result);
 
@@ -43,6 +49,8 @@ public interface Promise<V> extends Future<V> {
      * listeners.
      *
      * If it is success or failed already it will throw an {@link IllegalStateException}.
+     *
+     *  设置失败状态并回调
      */
     Promise<V> setFailure(Throwable cause);
 
@@ -61,6 +69,8 @@ public interface Promise<V> extends Future<V> {
      *
      * @return {@code true} if and only if successfully marked this future as uncancellable or it is already done
      *         without being cancelled.  {@code false} if this future has been cancelled already.
+     *
+     *   设置为不可取消状态
      */
     boolean setUncancellable();
 

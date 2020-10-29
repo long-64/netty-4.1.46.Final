@@ -138,6 +138,10 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         return name;
     }
 
+    /**
+     *  调用会发送一个 `ChannelRegistered` 的 `Inbound` 给下一个 `ChannelHandlerContext`
+     * @return
+     */
     @Override
     public ChannelHandlerContext fireChannelRegistered() {
         invokeChannelRegistered(findContextInbound(MASK_CHANNEL_REGISTERED));
@@ -228,6 +232,10 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
     static void invokeChannelActive(final AbstractChannelHandlerContext next) {
         EventExecutor executor = next.executor();
         if (executor.inEventLoop()) {
+
+            /**
+             *  {@link #invokeChannelActive()}
+             */
             next.invokeChannelActive();
         } else {
             executor.execute(new Runnable() {

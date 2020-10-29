@@ -161,6 +161,8 @@ import java.util.concurrent.TimeUnit;
  *     // Connection established successfully
  * }
  * </pre>
+ *
+ *  Netty 扩展Java 的Future, (新增监听器的方式) 表示一种没有返回值的异步调用，同时和一个Channel进行绑定。
  */
 public interface ChannelFuture extends Future<Void> {
 

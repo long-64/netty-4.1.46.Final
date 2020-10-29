@@ -174,7 +174,8 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
             return doResolveAndConnect0(channel, remoteAddress, localAddress, channel.newPromise());
         } else {
             // Registration future is almost always fulfilled already, but just in case it's not.
-            // //如果注册到group上还未完成，则添加Listener当执行完注册操作后再回调Listener进行连接操作
+
+            // 如果注册到group上还未完成，则添加Listener当执行完注册操作后再回调Listener进行连接操作
             final PendingRegistrationPromise promise = new PendingRegistrationPromise(channel);
             regFuture.addListener(new ChannelFutureListener() {
                 @Override
@@ -297,7 +298,8 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
          * {@link io.netty.channel.DefaultChannelPipeline#addLast(EventExecutorGroup, String, ChannelHandler)}
          *          *
          *          * 3、)config.handler -> {@link AbstractBootstrap#handler()}
-         * 设置 `ChannelInitializer` 实例，将 `ChannelInitializer` 添加到 Pipeline 尾部
+         *
+         * 设置 `ChannelInitializer` 实例，将 `{@link io.netty.channel.ChannelInitializer` 添加到 Pipeline 末端。
          *
          */
         ChannelPipeline p = channel.pipeline();

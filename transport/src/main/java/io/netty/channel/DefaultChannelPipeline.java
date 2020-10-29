@@ -90,6 +90,8 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     private boolean registered;
 
     protected DefaultChannelPipeline(Channel channel) {
+
+        // 将关联的 Channel 保存到属性 channel 中。
         this.channel = ObjectUtil.checkNotNull(channel, "channel");
         succeededFuture = new SucceededChannelFuture(channel, null);
         voidPromise =  new VoidChannelPromise(channel, true);
@@ -102,6 +104,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
          * 维护一个 {@link AbstractChannelHandlerContext} 为节点的双向链表
          *
          * 【 HeadContext、TailContext 】
+         *
+         *
+         *  {@link HeadContext} 实现 `ChannelHandler` 接口
          *
          */
         tail = new TailContext(this);
@@ -218,17 +223,21 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     public final ChannelPipeline addLast(EventExecutorGroup group, String name, ChannelHandler handler) {
         final AbstractChannelHandlerContext newCtx;
         synchronized (this) {
+
             // 校验名称是否重复
             checkMultiplicity(handler);
 
             /**
-             * 这个Handler创建一个对应的DefaultChannelHandlerContext实例，并与之关联起来（Context中有一个Handler属性保存着对应的Handler实例
+             *  调用{@link #newContext(EventExecutorGroup, String, ChannelHandler)}
+             *      这个Handler创建一个对应的 `{@link DefaultChannelHandlerContext}` 实例，并与之关联起来（Context中有一个Handler属性保存着对应的Handler实例
              *
-             * filterName() 给 channelHandler 命名
+             *  {@link #filterName(String, ChannelHandler)} 给 channelHandler 命名
              */
             newCtx = newContext(group, filterName(name, handler), handler);
 
-            // 插入双向链表中
+            /**
+             * 插入双向链表中 {@link #addLast0(AbstractChannelHandlerContext)}
+             */
             addLast0(newCtx);
 
             // If the registered is false it means that the channel was not registered on an eventLoop yet.
@@ -305,7 +314,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
     private String filterName(String name, ChannelHandler handler) {
         if (name == null) {
-            // [ generateName ]
+            /**
+             * [ 实际生成一个新的Handler名字 ] {@link #generateName(ChannelHandler)}
+             */
             return generateName(handler);
         }
         checkDuplicateName(name);
@@ -412,6 +423,11 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return this;
     }
 
+    /**
+     * 利用反射，获取 Handler 的 simpleName + "#0"
+     * @param handler
+     * @return
+     */
     private String generateName(ChannelHandler handler) {
         Map<Class<?>, String> cache = nameCaches.get();
         Class<?> handlerType = handler.getClass();
@@ -844,6 +860,8 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
     @Override
     public final ChannelPipeline fireChannelRegistered() {
+
+        // 将请求发送下一个 `ChannelHandlerContext`
         AbstractChannelHandlerContext.invokeChannelRegistered(head);
         return this;
     }
@@ -924,6 +942,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
     @Override
     public final ChannelPipeline fireChannelActive() {
+
+        /**
+         * 【核心】{@link AbstractChannelHandlerContext#invokeChannelActive(AbstractChannelHandlerContext)}
+         */
         AbstractChannelHandlerContext.invokeChannelActive(head);
         return this;
     }

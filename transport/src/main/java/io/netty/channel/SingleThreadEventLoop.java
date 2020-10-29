@@ -15,6 +15,7 @@
  */
 package io.netty.channel;
 
+import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.RejectedExecutionHandler;
 import io.netty.util.concurrent.RejectedExecutionHandlers;
 import io.netty.util.concurrent.SingleThreadEventExecutor;
@@ -78,9 +79,20 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
 
     @Override
     public ChannelFuture register(Channel channel) {
+
+        /**
+         *  {@link DefaultChannelPromise#DefaultChannelPromise(Channel, EventExecutor)}
+         */
         return register(new DefaultChannelPromise(channel, this));
     }
 
+    /**
+     *
+     *  channelFuture 返回 `promise` 这里是一个异步回调处理。
+     *
+     * @param promise
+     * @return
+     */
     @Override
     public ChannelFuture register(final ChannelPromise promise) {
         ObjectUtil.checkNotNull(promise, "promise");

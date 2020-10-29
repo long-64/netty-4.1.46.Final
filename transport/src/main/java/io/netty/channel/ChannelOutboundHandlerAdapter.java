@@ -50,7 +50,7 @@ public class ChannelOutboundHandlerAdapter extends ChannelHandlerAdapter impleme
             SocketAddress localAddress, ChannelPromise promise) throws Exception {
         /**
          * 有调回 AbstractChannelHandlerContext 方法，
-         * {@link AbstractChannelHandlerContext#connect(SocketAddress, SocketAddress)}
+         * {@link AbstractChannelHandlerContext#connect(SocketAddress, SocketAddress, ChannelPromise)}
          */
         ctx.connect(remoteAddress, localAddress, promise);
     }

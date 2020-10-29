@@ -474,10 +474,14 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         public final void register(EventLoop eventLoop, final ChannelPromise promise) {
             ObjectUtil.checkNotNull(eventLoop, "eventLoop");
             if (isRegistered()) {
+
+                // 如果已经注册过，则置为失败
                 promise.setFailure(new IllegalStateException("registered to an event loop already"));
                 return;
             }
             if (!isCompatible(eventLoop)) {
+
+                // 如果线程类型不兼容，则置为失败
                 promise.setFailure(
                         new IllegalStateException("incompatible event loop type: " + eventLoop.getClass().getName()));
                 return;
@@ -526,26 +530,16 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             try {
                 // check if the channel is still open as it could be closed in the mean time when the register
                 // call was outside of the eventLoop
+
+                // 注册之前，先将promise置为不可取消转态
                 if (!promise.setUncancellable() || !ensureOpen(promise)) {
                     return;
                 }
                 boolean firstRegistration = neverRegistered;
 
                 /**
-                 * {@link AbstractNioChannel#doRegister()}
-                 *
-                 * 这里我们将SocketChannel注册到与eventLoop关联的Selector上
+                 *  `promise置为成功` {@link #safeSetSuccess(ChannelPromise)}
                  */
-                doRegister();
-                // 标记已经注册过一次
-                neverRegistered = false;
-                // 标识已经注册的状态。
-                registered = true;
-
-                // Ensure we call handlerAdded(...) before we actually notify the promise. This is needed as the
-                // user may already fire events through the pipeline in the ChannelFutureListener.
-                pipeline.invokeHandlerAddedIfNeeded();
-
                 safeSetSuccess(promise);
 
                 /**
@@ -562,7 +556,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                     if (firstRegistration) {
 
                         /**
-                         * 循环注册事件。
+                         * 循环注册事件。【 自定义 ChannelHandler 注册 】
                          * {@link DefaultChannelPipeline#fireChannelActive()}
                          */
                         pipeline.fireChannelActive();
