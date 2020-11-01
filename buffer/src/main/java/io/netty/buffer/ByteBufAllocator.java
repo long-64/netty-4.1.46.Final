@@ -18,6 +18,8 @@ package io.netty.buffer;
 /**
  * Implementations are responsible to allocate buffers. Implementations of this interface are expected to be
  * thread-safe.
+ *
+ *  【 内存管理器 】
  */
 public interface ByteBufAllocator {
 
@@ -26,6 +28,8 @@ public interface ByteBufAllocator {
     /**
      * Allocate a {@link ByteBuf}. If it is a direct or heap buffer
      * depends on the actual implementation.
+     *
+     *  分配一块内存，自动判断是堆内还是堆外内存。
      */
     ByteBuf buffer();
 
@@ -44,6 +48,8 @@ public interface ByteBufAllocator {
 
     /**
      * Allocate a {@link ByteBuf}, preferably a direct buffer which is suitable for I/O.
+     *
+     *  尽可能分配一块堆外直接内存，
      */
     ByteBuf ioBuffer();
 
@@ -59,6 +65,8 @@ public interface ByteBufAllocator {
 
     /**
      * Allocate a heap {@link ByteBuf}.
+     *
+     *  分配一块堆内内存。
      */
     ByteBuf heapBuffer();
 
@@ -75,6 +83,8 @@ public interface ByteBufAllocator {
 
     /**
      * Allocate a direct {@link ByteBuf}.
+     *
+     *  分配一块堆外内存
      */
     ByteBuf directBuffer();
 
@@ -92,6 +102,8 @@ public interface ByteBufAllocator {
     /**
      * Allocate a {@link CompositeByteBuf}.
      * If it is a direct or heap buffer depends on the actual implementation.
+     *
+     *  组合分配，把多个 ByteBuf 组合成一起变成一个整体
      */
     CompositeByteBuf compositeBuffer();
 

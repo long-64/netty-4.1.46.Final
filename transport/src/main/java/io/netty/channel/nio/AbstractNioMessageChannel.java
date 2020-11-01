@@ -146,6 +146,10 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                 }
 
                 if (done) {
+
+                    /**
+                     * 移除对象，{@link ChannelOutboundBuffer#remove()}
+                     */
                     in.remove();
                 } else {
                     // Did not write all messages.

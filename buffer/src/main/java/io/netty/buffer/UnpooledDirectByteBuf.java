@@ -61,7 +61,10 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
         }
 
         this.alloc = alloc;
-        // 分配一个直接缓冲区。
+        /**
+         * 分配一个直接缓冲区。{@link #setByteBuffer(ByteBuffer, boolean)}
+         *  其实: 做一次赋值。
+         */
         setByteBuffer(allocateDirect(initialCapacity), false);
     }
 
@@ -119,6 +122,10 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
                 if (doNotFree) {
                     doNotFree = false;
                 } else {
+
+                    /**
+                     * {@link #freeDirect(ByteBuffer)}
+                     */
                     freeDirect(oldBuffer);
                 }
             }

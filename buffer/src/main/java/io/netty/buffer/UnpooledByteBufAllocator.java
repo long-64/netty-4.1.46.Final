@@ -23,6 +23,8 @@ import java.nio.ByteBuffer;
 
 /**
  * Simplistic {@link ByteBufAllocator} implementation that does not pool anything.
+ *
+ *  【 非池化内存管理器 】
  */
 public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator implements ByteBufAllocatorMetricProvider {
 
@@ -77,10 +79,22 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
                 && PlatformDependent.hasDirectBufferNoCleanerConstructor();
     }
 
+    /**
+     *
+     *  堆内内存分配（非池化）
+     *
+     * @param initialCapacity
+     * @param maxCapacity
+     * @return
+     */
     @Override
     protected ByteBuf newHeapBuffer(int initialCapacity, int maxCapacity) {
         /**
-         * PlatformDependent.hasUnsafe() 是否支持 `unsafe`
+         *
+         *  判断操作系统是否支持 `unsafe` {@link PlatformDependent#hasUnsafe()}
+         *
+         *   支持使用 {@link InstrumentedUnpooledUnsafeHeapByteBuf -> 最终调用 {@link UnpooledHeapByteBuf#UnpooledHeapByteBuf(ByteBufAllocator, int, int)}
+         *   不支持使用 {@link InstrumentedUnpooledHeapByteBuf
          */
         return PlatformDependent.hasUnsafe() ?
                 new InstrumentedUnpooledUnsafeHeapByteBuf(this, initialCapacity, maxCapacity) :
@@ -90,6 +104,8 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
     @Override
     protected ByteBuf newDirectBuffer(int initialCapacity, int maxCapacity) {
         final ByteBuf buf;
+
+        // 判断是否支持 `Unsafe`
         if (PlatformDependent.hasUnsafe()) {
             buf = noCleaner ? new InstrumentedUnpooledUnsafeNoCleanerDirectByteBuf(this, initialCapacity, maxCapacity) :
                     new InstrumentedUnpooledUnsafeDirectByteBuf(this, initialCapacity, maxCapacity);
@@ -192,6 +208,8 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
             extends UnpooledUnsafeNoCleanerDirectByteBuf {
         InstrumentedUnpooledUnsafeNoCleanerDirectByteBuf(
                 UnpooledByteBufAllocator alloc, int initialCapacity, int maxCapacity) {
+
+            // 调用其父类。
             super(alloc, initialCapacity, maxCapacity);
         }
 

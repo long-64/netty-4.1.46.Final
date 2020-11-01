@@ -762,6 +762,10 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 
     private void invokeWrite0(Object msg, ChannelPromise promise) {
         try {
+
+            /**
+             *  调用当前 Handler 的 write 方法。最后执行到 {@link io.netty.channel.DefaultChannelPipeline.HeadContext#write(ChannelHandlerContext, Object, ChannelPromise)}
+             */
             ((ChannelOutboundHandler) handler()).write(this, msg, promise);
         } catch (Throwable t) {
             notifyOutboundHandlerException(t, promise);
@@ -809,6 +813,8 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 
     void invokeWriteAndFlush(Object msg, ChannelPromise promise) {
         if (invokeHandler()) {
+
+            // invokeWrite0
             invokeWrite0(msg, promise);
             invokeFlush0();
         } else {
@@ -829,14 +835,30 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
             throw e;
         }
 
+        /**
+         * 从 Tail 节点开始，并且是 Outbound 事件，所以会找到 Tail 节点的上一个 OutBoundHandler。
+         *  {@link #findContextOutbound(int)}
+         */
         final AbstractChannelHandlerContext next = findContextOutbound(flush ?
                 (MASK_WRITE | MASK_FLUSH) : MASK_WRITE);
         final Object m = pipeline.touch(msg, next);
+
+        // 获取 executor
         EventExecutor executor = next.executor();
+
+        // 判断是否是 EventLoop 线程。
         if (executor.inEventLoop()) {
             if (flush) {
+
+                /**
+                 * 调用 flush {@link #invokeWriteAndFlush(Object, ChannelPromise)}
+                 */
                 next.invokeWriteAndFlush(m, promise);
             } else {
+
+                /**
+                 * 没有调 flush {@link #invokeWrite(Object, ChannelPromise)}
+                 */
                 next.invokeWrite(m, promise);
             }
         } else {
@@ -853,6 +875,10 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 
     @Override
     public ChannelFuture writeAndFlush(Object msg) {
+
+        /**
+         *  {@link #writeAndFlush(Object, ChannelPromise)}
+         */
         return writeAndFlush(msg, newPromise());
     }
 

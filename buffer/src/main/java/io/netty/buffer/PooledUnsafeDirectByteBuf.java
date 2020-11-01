@@ -27,6 +27,10 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
 final class PooledUnsafeDirectByteBuf extends PooledByteBuf<ByteBuffer> {
+
+    /**
+     * 当回收站没有可用的 buf, 就会创建一个新的 buf.
+     */
     private static final ObjectPool<PooledUnsafeDirectByteBuf> RECYCLER = ObjectPool.newPool(
             new ObjectCreator<PooledUnsafeDirectByteBuf>() {
         @Override
@@ -37,12 +41,16 @@ final class PooledUnsafeDirectByteBuf extends PooledByteBuf<ByteBuffer> {
 
     static PooledUnsafeDirectByteBuf newInstance(int maxCapacity) {
         /**
-         * RECYCLER 内存回收
+         * TODO RECYCLER 内存回收
          * 1、实现 newObject。当没有可用 buf, 则创建一个新的 `buf`
          * 2、`buf.resuse()` 设置初始状态，
          *  1、readIndex、wiredIndex  = 0
          */
         PooledUnsafeDirectByteBuf buf = RECYCLER.get();
+
+        /**
+         * 重置 {@link PooledByteBuf#reuse(int)}
+         */
         buf.reuse(maxCapacity);
         return buf;
     }

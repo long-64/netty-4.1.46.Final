@@ -36,6 +36,13 @@ final class PooledDirectByteBuf extends PooledByteBuf<ByteBuffer> {
     });
 
     static PooledDirectByteBuf newInstance(int maxCapacity) {
+
+        /**
+         * TODO RECYCLER 内存回收
+         * 1、实现 newObject。当没有可用 buf, 则创建一个新的 `buf`
+         * 2、`buf.resuse()` 设置初始状态，
+         *  1、readIndex、wiredIndex  = 0
+         */
         PooledDirectByteBuf buf = RECYCLER.get();
         buf.reuse(maxCapacity);
         return buf;

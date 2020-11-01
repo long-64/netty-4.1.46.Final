@@ -56,9 +56,14 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         }
 
         this.alloc = checkNotNull(alloc, "alloc");
-        // 默认分配数组 ，给全局变量 “array”
+
+        /**
+         * 默认分配数组 ，给全局变量 “array” {@link #setArray(byte[])}
+         */
         setArray(allocateArray(initialCapacity));
-        // 初始化 readIndex, writeIndex 属性。
+        /**
+         * 初始化 readIndex, writeIndex 属性。{@link #setIndex(int, int)}
+         */
         setIndex(0, 0);
     }
 

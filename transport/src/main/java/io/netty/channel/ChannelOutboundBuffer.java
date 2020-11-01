@@ -126,6 +126,10 @@ public final class ChannelOutboundBuffer {
 
         // increment pending bytes after adding message to the unflushed arrays.
         // See https://github.com/netty/netty/issues/1619
+
+        /**
+         *  {@link #incrementPendingOutboundBytes(long, boolean)}
+         */
         incrementPendingOutboundBytes(entry.pendingSize, false);
     }
 
@@ -174,6 +178,8 @@ public final class ChannelOutboundBuffer {
 
         long newWriteBufferSize = TOTAL_PENDING_SIZE_UPDATER.addAndGet(this, size);
         if (newWriteBufferSize > channel.config().getWriteBufferHighWaterMark()) {
+
+            // 【setUnwritable】
             setUnwritable(invokeLater);
         }
     }
@@ -269,11 +275,20 @@ public final class ChannelOutboundBuffer {
         if (!e.cancelled) {
             // only release message, notify and decrement if it was not canceled before.
             ReferenceCountUtil.safeRelease(msg);
+
+            /**
+             * 设置成功。{@link #safeSuccess(ChannelPromise)}
+             *  最终是 `通知监听器`
+             */
             safeSuccess(promise);
             decrementPendingOutboundBytes(size, false, true);
         }
 
         // recycle the entry
+
+        /**
+         * 将对象回收。
+         */
         e.recycle();
 
         return true;

@@ -1079,6 +1079,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
     @Override
     public final ChannelFuture writeAndFlush(Object msg) {
+
+        /**
+         * 从 tail 节点开始传播 {@link AbstractChannelHandlerContext#writeAndFlush(Object)}
+         */
         return tail.writeAndFlush(msg);
     }
 
@@ -1428,6 +1432,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
         @Override
         public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
+
+            /**
+             *  最终处理  {@link io.netty.channel.AbstractChannel.AbstractUnsafe#write(Object, ChannelPromise)}
+             */
             unsafe.write(msg, promise);
         }
 

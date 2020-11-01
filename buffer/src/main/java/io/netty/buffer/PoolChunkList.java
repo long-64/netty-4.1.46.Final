@@ -86,6 +86,7 @@ final class PoolChunkList<T> implements PoolChunkListMetric {
         for (PoolChunk<T> cur = head; cur != null; cur = cur.next) {
             // 在每个 chunk 上尝试进行内存分配
             if (cur.allocate(buf, reqCapacity, normCapacity)) {
+
                 // 代表当前Chunk的内存使用率大于其最大使用率
                 if (cur.usage() >= maxUsage) {
                     // 从当前 chunkList 中移除

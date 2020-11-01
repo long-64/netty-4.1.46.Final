@@ -28,7 +28,7 @@ public interface Promise<V> extends Future<V> {
      *
      * If it is success or failed already it will throw an {@link IllegalStateException}.
      *
-     * 设置成功状态并回调
+     * 标记当前Future成功，设置结果，如果设置成功，则通知所有的监听器，如果Future已经成功或者失败，则抛出IllegalStateException
      */
     Promise<V> setSuccess(V result);
 
@@ -40,7 +40,7 @@ public interface Promise<V> extends Future<V> {
      *         a success. Otherwise {@code false} because this future is
      *         already marked as either a success or a failure.
      *
-     *
+     * 标记当前Future成功，设置结果，如果设置成功，则通知所有的监听器并且返回true，否则返回false
      */
     boolean trySuccess(V result);
 
@@ -50,7 +50,7 @@ public interface Promise<V> extends Future<V> {
      *
      * If it is success or failed already it will throw an {@link IllegalStateException}.
      *
-     *  设置失败状态并回调
+     *  标记当前Future失败，设置结果为异常实例，如果设置成功，则通知所有的监听器，如果Future已经成功或者失败，则抛出IllegalStateException
      */
     Promise<V> setFailure(Throwable cause);
 
@@ -61,6 +61,8 @@ public interface Promise<V> extends Future<V> {
      * @return {@code true} if and only if successfully marked this future as
      *         a failure. Otherwise {@code false} because this future is
      *         already marked as either a success or a failure.
+     *
+     *  标记当前 Future失败，设置结果为异常实例，如果设置成功，则通知所有的监听器并且返回true，否则返回false
      */
     boolean tryFailure(Throwable cause);
 
@@ -70,7 +72,7 @@ public interface Promise<V> extends Future<V> {
      * @return {@code true} if and only if successfully marked this future as uncancellable or it is already done
      *         without being cancelled.  {@code false} if this future has been cancelled already.
      *
-     *   设置为不可取消状态
+     *   标记当前的Promise实例为不可取消，设置成功返回true，否则返回false
      */
     boolean setUncancellable();
 

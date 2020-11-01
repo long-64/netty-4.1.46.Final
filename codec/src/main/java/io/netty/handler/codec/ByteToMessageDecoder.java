@@ -87,6 +87,8 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
             }
             try {
                 final int required = in.readableBytes();
+
+                // 不能超过最大内存。
                 if (required > cumulation.maxWritableBytes() ||
                         (required > cumulation.maxFastWritableBytes() && cumulation.refCnt() > 1) ||
                         cumulation.isReadOnly()) {
@@ -94,8 +96,16 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     // - cumulation cannot be resized to accommodate the additional data
                     // - cumulation can be expanded with a reallocation operation to accommodate but the buffer is
                     //   assumed to be shared (e.g. refCnt() > 1) and the reallocation may not be safe.
+
+                    /**
+                     * 进行扩容
+                     */
                     return expandCumulation(alloc, cumulation, in);
                 }
+
+                /**
+                 * 将当前写入缓冲区
+                 */
                 cumulation.writeBytes(in, in.readerIndex(), required);
                 in.readerIndex(in.writerIndex());
                 return cumulation;
@@ -268,11 +278,23 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof ByteBuf) {
+
+            // 用于盛放解析的对象。
             CodecOutputList out = CodecOutputList.newInstance();
             try {
+
+                // 当前累加器为空，说明这是第一次 I/O 流里面读取的数据。
                 first = cumulation == null;
+
+                /**
+                 * 将累加器赋值为刚读进的对象。{@link ByteToMessageDecoder#MERGE_CUMULATOR}
+                 */
                 cumulation = cumulator.cumulate(ctx.alloc(),
                         first ? Unpooled.EMPTY_BUFFER : cumulation, (ByteBuf) msg);
+
+                /**
+                 *  解码 {@link #callDecode(ChannelHandlerContext, ByteBuf, List)}
+                 */
                 callDecode(ctx, cumulation, out);
             } catch (DecoderException e) {
                 throw e;
@@ -290,12 +312,19 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     discardSomeReadBytes();
                 }
 
+                // 记录 List 长度
                 int size = out.size();
                 firedChannelRead |= out.insertSinceRecycled();
+
+                /**
+                 * 向下传播 {@link #fireChannelRead(ChannelHandlerContext, List, int)}
+                 */
                 fireChannelRead(ctx, out, size);
                 out.recycle();
             }
         } else {
+
+            // 不是 ByteBuf 向下传播。
             ctx.fireChannelRead(msg);
         }
     }
@@ -415,10 +444,14 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      */
     protected void callDecode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
         try {
+
+            // 只有累加器里有数据。
             while (in.isReadable()) {
                 int outSize = out.size();
 
                 if (outSize > 0) {
+
+                    // 如果有对象，向下传播。
                     fireChannelRead(ctx, out, outSize);
                     out.clear();
 
@@ -427,12 +460,15 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     //
                     // See:
                     // - https://github.com/netty/netty/issues/4635
+
+                    // 解码过程中判断如果 ctx 别删除就跳出循环。
                     if (ctx.isRemoved()) {
                         break;
                     }
                     outSize = 0;
                 }
 
+                // 当前可读数据长度。
                 int oldInputLength = in.readableBytes();
                 decodeRemovalReentryProtection(ctx, in, out);
 

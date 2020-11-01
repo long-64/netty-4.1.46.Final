@@ -99,6 +99,10 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
         ByteBuf buf = null;
         try {
+
+            /**
+             * 判断当前编码器是否支持需要发送消息。
+             */
             if (acceptOutboundMessage(msg)) {
                 @SuppressWarnings("unchecked")
                 I cast = (I) msg;
@@ -117,6 +121,8 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
                 }
                 buf = null;
             } else {
+
+                // 不支持则直接透传。
                 ctx.write(msg, promise);
             }
         } catch (EncoderException e) {

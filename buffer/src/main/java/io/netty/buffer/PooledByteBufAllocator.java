@@ -35,6 +35,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+/**
+ *
+ *  【 池化内存管理器 】
+ *
+ */
 public class PooledByteBufAllocator extends AbstractByteBufAllocator implements ByteBufAllocatorMetricProvider {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(PooledByteBufAllocator.class);
@@ -97,6 +102,10 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
          */
         final int defaultMinNumArena = NettyRuntime.availableProcessors() * 2;
         final int defaultChunkSize = DEFAULT_PAGE_SIZE << DEFAULT_MAX_ORDER;
+
+        /**
+         *  DEFAULT_NUM_HEAP_ARENA 默认是 CPU * 2
+         */
         DEFAULT_NUM_HEAP_ARENA = Math.max(0,
                 SystemPropertyUtil.getInt(
                         "io.netty.allocator.numHeapArenas",
@@ -261,7 +270,15 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
 
         int pageShifts = validateAndCalculatePageShifts(pageSize);
 
+        /**
+         * nHeapArena、nDirectArena 默认是 CPU * 2 和 `EventLoopGroup` 分配线程是一致的算法。
+         *   原因: 确保每个任务线程独享一个 `Arena`
+         */
         if (nHeapArena > 0) {
+
+            /**
+             * 创建一个固定大小 `PoolArena` 数组 {@link #newArenaArray(int)}
+             */
             heapArenas = newArenaArray(nHeapArena);
             List<PoolArenaMetric> metrics = new ArrayList<PoolArenaMetric>(heapArenas.length);
             for (int i = 0; i < heapArenas.length; i ++) {
@@ -278,6 +295,10 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
         }
 
         if (nDirectArena > 0) {
+
+            /**
+             *  创建一个固定大小 `PoolArena` 数组 {@link #newArenaArray(int)}
+             */
             directArenas = newArenaArray(nDirectArena);
             List<PoolArenaMetric> metrics = new ArrayList<PoolArenaMetric>(directArenas.length);
             for (int i = 0; i < directArenas.length; i ++) {
@@ -338,7 +359,10 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
     @Override
     protected ByteBuf newHeapBuffer(int initialCapacity, int maxCapacity) {
         /**
-         *  1、获取PoolThreadCache 缓存对象。
+         *  【 构造器 】{@link PooledByteBufAllocator#PooledByteBufAllocator(boolean, int, int, int, int, int, int, int, boolean, int)}
+         *      1、newArenaArray 初始 `poolArena` 对象。
+         *
+         *  1、获取PoolThreadCache 缓存对象。{@link FastThreadLocal#get()}
          *  2、从缓存中，获取 poolArena 对象
          *  3、调用 `heapArena.allocate` 分配 ByteBuf。
          *
@@ -519,7 +543,9 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
 
             final Thread current = Thread.currentThread();
             if (useCacheForAllThreads || current instanceof FastThreadLocalThread) {
-                // 【PoolThreadCache 构造器】
+                /**
+                 * 【PoolThreadCache 构造器】{@link PoolThreadCache#PoolThreadCache(PoolArena, PoolArena, int, int, int, int, int)} 
+                 */
                 final PoolThreadCache cache = new PoolThreadCache(
                         heapArena, directArena, tinyCacheSize, smallCacheSize, normalCacheSize,
                         DEFAULT_MAX_CACHED_BUFFER_CAPACITY, DEFAULT_CACHE_TRIM_INTERVAL);

@@ -304,8 +304,17 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         return pipeline.write(msg, promise);
     }
 
+    /**
+     * 将数据，发送到 Channel
+     * @param msg
+     * @return
+     */
     @Override
     public ChannelFuture writeAndFlush(Object msg) {
+
+        /**
+         * {@link DefaultChannelPipeline#writeAndFlush(Object)}
+         */
         return pipeline.writeAndFlush(msg);
     }
 
@@ -912,6 +921,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         public final void write(Object msg, ChannelPromise promise) {
             assertEventLoop();
 
+            // 负责缓冲 写进的 ByteBuf
             ChannelOutboundBuffer outboundBuffer = this.outboundBuffer;
             if (outboundBuffer == null) {
                 // If the outboundBuffer is null we know the channel was closed and so
@@ -926,6 +936,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
             int size;
             try {
+                /**
+                 * 非堆外内存 转化为 堆外内存。{@link io.netty.channel.nio.AbstractNioByteChannel#filterOutboundMessage(Object)}
+                 */
                 msg = filterOutboundMessage(msg);
                 size = pipeline.estimatorHandle().size(msg);
                 if (size < 0) {
@@ -937,6 +950,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 return;
             }
 
+            /**
+             * 插入写队列
+             */
             outboundBuffer.addMessage(msg, size, promise);
         }
 
@@ -950,6 +966,10 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
 
             outboundBuffer.addFlush();
+
+            /**
+             * {@link #flush0()}
+             */
             flush0();
         }
 
@@ -983,6 +1003,10 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
 
             try {
+
+                /**
+                 * 子类实现 {@link io.netty.channel.nio.AbstractNioMessageChannel#doWrite(ChannelOutboundBuffer)}
+                 */
                 doWrite(outboundBuffer);
             } catch (Throwable t) {
                 if (t instanceof IOException && config().isAutoClose()) {

@@ -143,6 +143,10 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
     public long rp1, rp2, rp3, rp4, rp5, rp6, rp7, rp8, rp9;
 
     private InternalThreadLocalMap() {
+        /**
+         *  创建一个长度为32的 对象数组， {@link #newIndexedVariableTable()}
+         *     1、对象状态 `UNSET`,表示下标的值没有被设置。
+         */
         super(newIndexedVariableTable());
     }
 
@@ -317,7 +321,7 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
      */
     public boolean setIndexedVariable(int index, Object value) {
         /**
-         * indexedVariables  = InternalThreadLocalMap对象中维护的数组，初始值32
+         * indexedVariables  = InternalThreadLocalMap对象中维护的数组对象，初始值32。
          * 则直接通过下标 `index` 设置新创建的线程共享对象
          */
         Object[] lookup = indexedVariables;
@@ -328,7 +332,7 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
         } else {
             /**
              * index > indexedVariables.length
-             * 【 expandIndexedVariableTableAndSet 】将数组进行扩容。
+             * 将数组进行扩容。{@link #expandIndexedVariableTableAndSet(int, Object)}
              */
             expandIndexedVariableTableAndSet(index, value);
             return true;

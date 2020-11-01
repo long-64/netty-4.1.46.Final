@@ -105,8 +105,18 @@ public abstract class AbstractReferenceCountedByteBuf extends AbstractByteBuf {
         return handleRelease(updater.release(this, decrement));
     }
 
+    /**
+     *  内存池 ByteBuf 回收
+     *
+     * @param result
+     * @return
+     */
     private boolean handleRelease(boolean result) {
         if (result) {
+
+            /**
+             *  {@link PooledByteBuf#deallocate()}
+             */
             deallocate();
         }
         return result;

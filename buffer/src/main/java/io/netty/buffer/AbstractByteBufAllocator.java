@@ -103,11 +103,17 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
 
     @Override
     public ByteBuf buffer() {
+
+        // 是否默认支持 `堆外内存`
         if (directByDefault) {
-            // 堆外 【 directBuffer 】
+            /**
+             *  分配堆外内存 {@link #directBuffer()}
+             */
             return directBuffer();
         }
-        // 堆内 【 heapBuffer 】
+        /**
+         *  分配堆内内存 {@link #heapBuffer()}
+         */
         return heapBuffer();
     }
 
@@ -171,14 +177,16 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         /**
          * 【newHeapBuffer 】
          * 区分
-         * 池化 {@link PooledByteBufAllocator#newHeapBuffer(int, int)}
-         * 非池化 {@link UnpooledByteBufAllocator#newHeapBuffer(int, int)}
+         * 池化堆内     {@link PooledByteBufAllocator#newHeapBuffer(int, int)}
+         * 非池化堆内   {@link UnpooledByteBufAllocator#newHeapBuffer(int, int)}
          */
         return newHeapBuffer(initialCapacity, maxCapacity);
     }
 
     @Override
     public ByteBuf directBuffer() {
+
+        // 重载方法。
         return directBuffer(DEFAULT_INITIAL_CAPACITY, DEFAULT_MAX_CAPACITY);
     }
 
@@ -194,10 +202,10 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         }
         validate(initialCapacity, maxCapacity);
         /**
-         * 【 newDirectBuffer 】
+         * 【 newDirectBuffer 】 由子类来实现。
          *  区分
-         *  池化 {@link PooledByteBufAllocator#newDirectBuffer(int, int)}
-         *  非池化 {@link UnpooledByteBufAllocator#newDirectBuffer(int, int)}
+         *  池化堆外    {@link PooledByteBufAllocator#newDirectBuffer(int, int)}
+         *  非池化堆外  {@link UnpooledByteBufAllocator#newDirectBuffer(int, int)}
          */
         return newDirectBuffer(initialCapacity, maxCapacity);
     }

@@ -146,11 +146,19 @@ final class PoolChunk<T> implements PoolChunkMetric {
         this.arena = arena;
         // memory 为一个 ByteBuf
         this.memory = memory;
+
+        // 8kb
         this.pageSize = pageSize;
+
+        // 13
         this.pageShifts = pageShifts;
+
+        // 11
         this.maxOrder = maxOrder;
         this.chunkSize = chunkSize;
         this.offset = offset;
+
+        // 12 = maxOrder + 1
         unusable = (byte) (maxOrder + 1);
         log2ChunkSize = log2(chunkSize);
         subpageOverflowMask = ~(pageSize - 1);
@@ -241,10 +249,15 @@ final class PoolChunk<T> implements PoolChunkMetric {
     boolean allocate(PooledByteBuf<T> buf, int reqCapacity, int normCapacity) {
         final long handle;
         if ((normCapacity & subpageOverflowMask) != 0) { // >= pageSize
-            // 【allocateRun】 如果以 Page 为单位分配
+
+            /**
+             * 如果以 Page 为单位分配 {@link #allocateRun(int)}
+             */
             handle =  allocateRun(normCapacity);
         } else {
-            // 【 allocateSubpage 】在subPage上进行内存分配
+            /**
+             *  在subPage上进行内存分配 {@link #allocateSubpage(int)}
+             */
             handle = allocateSubpage(normCapacity);
         }
 
@@ -263,6 +276,8 @@ final class PoolChunk<T> implements PoolChunkMetric {
      * The minimal depth at which subtree rooted at id has some free space
      *
      * @param id id
+     *
+     *  【 逐层往上标记被使用 】
      */
     private void updateParentsAlloc(int id) {
         while (id > 1) {
@@ -341,11 +356,12 @@ final class PoolChunk<T> implements PoolChunkMetric {
         byte value = value(id);
         assert value == d && (id & initial) == 1 << d : String.format("val = %d, id & initial = %d, d = %d",
                 value, id & initial, d);
-        // 将找到节点设置为不可用
+        /**
+         * 将找到节点设置为不可用 `unusable` = 12.
+         */
         setValue(id, unusable); // mark as unusable
         /**
-         * 逐层往上标记被使用
-         * 【 updateParentsAlloc 】
+         * 逐层往上标记被使用  {@link #updateParentsAlloc(int)}
          */
         updateParentsAlloc(id);
         return id;
@@ -361,8 +377,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
         // 根据 `normCapacity` 计算出第几层。
         int d = maxOrder - (log2(normCapacity) - pageShifts);
         /**
-         * 根据层级关系，去分配一个节点。其中id 代表 memoryMap 中的下标。
-         * 【 allocateNode 】
+         * 根据层级关系，去分配一个节点。其中id 代表 memoryMap 中的下标。{@link #allocateNode(int)}
          */
         int id = allocateNode(d);
         if (id < 0) {
@@ -472,6 +487,8 @@ final class PoolChunk<T> implements PoolChunkMetric {
     }
 
     void initBufWithSubpage(PooledByteBuf<T> buf, ByteBuffer nioBuffer, long handle, int reqCapacity) {
+
+        // 【 initBufWithSubpage 】
         initBufWithSubpage(buf, nioBuffer, handle, bitmapIdx(handle), reqCapacity);
     }
 

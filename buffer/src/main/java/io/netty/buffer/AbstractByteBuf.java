@@ -72,7 +72,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
     int writerIndex; // 写指针
     private int markedReaderIndex; // mark 之后的读指针
     private int markedWriterIndex; // mark 之后的写指针
-    private int maxCapacity;
+    private int maxCapacity;  // 最大容量
 
     protected AbstractByteBuf(int maxCapacity) {
         checkPositiveOrZero(maxCapacity, "maxCapacity");
@@ -143,6 +143,10 @@ public abstract class AbstractByteBuf extends ByteBuf {
         if (checkBounds) {
             checkIndexBounds(readerIndex, writerIndex, capacity());
         }
+
+        /**
+         *  初始化 readerIndex、writeIndex 指针 {@link #setIndex0(int, int)}
+         */
         setIndex0(readerIndex, writerIndex);
         return this;
     }
@@ -1490,6 +1494,11 @@ public abstract class AbstractByteBuf extends ByteBuf {
         }
     }
 
+    /**
+     * 初始化 读指针、写指针。
+     * @param readerIndex
+     * @param writerIndex
+     */
     final void setIndex0(int readerIndex, int writerIndex) {
         this.readerIndex = readerIndex;
         this.writerIndex = writerIndex;

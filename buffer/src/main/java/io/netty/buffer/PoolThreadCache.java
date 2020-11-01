@@ -93,8 +93,7 @@ final class PoolThreadCache {
         if (heapArena != null) {
             // Create the caches for the heap allocations
             /**
-             * 创建缓存，用于内存管理。
-             * 【 createSubPageCaches 】
+             * 创建缓存，用于内存管理。{@link #createSubPageCaches(int, int, SizeClass)}
              */
             tinySubPageHeapCaches = createSubPageCaches(
                     tinyCacheSize, PoolArena.numTinySubpagePools, SizeClass.Tiny);
@@ -141,6 +140,10 @@ final class PoolThreadCache {
     private static <T> MemoryRegionCache<T>[] createSubPageCaches(
             int cacheSize, int numCaches, SizeClass sizeClass) {
         if (cacheSize > 0 && numCaches > 0) {
+
+            /**
+             * 缓存数组 {@link MemoryRegionCache#MemoryRegionCache(int, SizeClass)}
+             */
             @SuppressWarnings("unchecked")
             MemoryRegionCache<T>[] cache = new MemoryRegionCache[numCaches];
             for (int i = 0; i < cache.length; i++) {
@@ -188,9 +191,9 @@ final class PoolThreadCache {
     boolean allocateTiny(PoolArena<?> area, PooledByteBuf<?> buf, int reqCapacity, int normCapacity) {
         /**
          * 【cacheForTiny 】
-         *  1、找到 tiny 数组下标，从缓存中获取
+         *  1、找到 tiny 数组下标，从缓存中获取 {@link #cacheForTiny(PoolArena, int)}
          *
-         *  【 allocate 】
+         *  【 allocate 】{@link #allocate(MemoryRegionCache, PooledByteBuf, int)}
          */
         return allocate(cacheForTiny(area, normCapacity), buf, reqCapacity);
     }
@@ -215,7 +218,9 @@ final class PoolThreadCache {
             // no cache found so just return false here
             return false;
         }
-        // 【 allocate 】
+        /**
+         * 【 allocate 】{@link MemoryRegionCache#allocate(PooledByteBuf, int)}
+         */
         boolean allocated = cache.allocate(buf, reqCapacity);
         if (++ allocations >= freeSweepAllocationThreshold) {
             allocations = 0;
@@ -391,6 +396,10 @@ final class PoolThreadCache {
         @Override
         protected void initBuf(
                 PoolChunk<T> chunk, ByteBuffer nioBuffer, long handle, PooledByteBuf<T> buf, int reqCapacity) {
+
+            /**
+             * {@link PoolChunk#initBufWithSubpage(PooledByteBuf, ByteBuffer, long, int)}
+             */
             chunk.initBufWithSubpage(buf, nioBuffer, handle, reqCapacity);
         }
     }

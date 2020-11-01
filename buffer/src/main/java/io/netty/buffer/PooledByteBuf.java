@@ -60,11 +60,14 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
         assert handle >= 0;
         assert chunk != null;
 
+        // 初始化了chunk，指定当前ByteBuf分配的内存块
         this.chunk = chunk;
         memory = chunk.memory;
         tmpNioBuf = nioBuffer;
         allocator = chunk.arena.parent;
         this.cache = cache;
+
+        // 初始化了handle，指定当前ByteBuf连续内存指向的位置。
         this.handle = handle;
         this.offset = offset;
         this.length = length;
@@ -166,8 +169,16 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
     protected final void deallocate() {
         if (handle >= 0) {
             final long handle = this.handle;
+
+            // 表示当前 ByteBuf 不再指向任何一块内存。
             this.handle = -1;
+
+            // 将 memory 也设置 null
             memory = null;
+
+            /**
+             * 将 ByteBuf 内存进行释放 {@link PoolArena#free(PoolChunk, ByteBuffer, long, int, PoolThreadCache)}
+             */
             chunk.arena.free(chunk, tmpNioBuf, handle, maxLength, cache);
             tmpNioBuf = null;
             chunk = null;
