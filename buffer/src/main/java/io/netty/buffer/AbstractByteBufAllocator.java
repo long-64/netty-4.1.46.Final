@@ -143,7 +143,13 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
 
     @Override
     public ByteBuf ioBuffer(int initialCapacity) {
+
+        // 判断是否能获取 JDK Unsafe 对象，
         if (PlatformDependent.hasUnsafe() || isDirectBufferPooled()) {
+
+            /**
+             * {@link #directBuffer(int)}
+             */
             return directBuffer(initialCapacity);
         }
         return heapBuffer(initialCapacity);

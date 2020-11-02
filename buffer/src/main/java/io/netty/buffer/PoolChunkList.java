@@ -91,6 +91,8 @@ final class PoolChunkList<T> implements PoolChunkListMetric {
                 if (cur.usage() >= maxUsage) {
                     // 从当前 chunkList 中移除
                     remove(cur);
+
+                    // 添加到下一个 chunkList 中。
                     nextList.add(cur);
                 }
                 return true;

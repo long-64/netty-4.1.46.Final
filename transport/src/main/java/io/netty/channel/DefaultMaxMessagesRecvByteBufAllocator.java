@@ -111,6 +111,11 @@ public abstract class DefaultMaxMessagesRecvByteBufAllocator implements MaxMessa
 
         @Override
         public ByteBuf allocate(ByteBufAllocator alloc) {
+
+            /**
+             *  guess {@link AdaptiveRecvByteBufAllocator.HandleImpl#guess()}
+             *  ioBuffer {@link io.netty.buffer.AbstractByteBufAllocator#ioBuffer(int)}
+             */
             return alloc.ioBuffer(guess());
         }
 

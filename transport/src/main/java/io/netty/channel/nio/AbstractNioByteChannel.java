@@ -23,6 +23,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelMetadata;
 import io.netty.channel.ChannelOutboundBuffer;
 import io.netty.channel.ChannelPipeline;
+import io.netty.channel.DefaultChannelConfig;
 import io.netty.channel.FileRegion;
 import io.netty.channel.RecvByteBufAllocator;
 import io.netty.channel.internal.ChannelUtils;
@@ -137,15 +138,34 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                 return;
             }
             final ChannelPipeline pipeline = pipeline();
+
+            /**
+             *  获取 `ByteBuf 内存管理器` {@link DefaultChannelConfig#getAllocator()}
+             */
             final ByteBufAllocator allocator = config.getAllocator();
+
+            /**
+             * 创建一个 Handle {@link #recvBufAllocHandle()}
+             */
             final RecvByteBufAllocator.Handle allocHandle = recvBufAllocHandle();
+
+            /**
+             * 将配置重置
+             */
             allocHandle.reset(config);
 
             ByteBuf byteBuf = null;
             boolean close = false;
             try {
                 do {
+                    /**
+                     *  {@link io.netty.channel.DefaultMaxMessagesRecvByteBufAllocator.MaxMessageHandle#allocate(ByteBufAllocator)}
+                     */
                     byteBuf = allocHandle.allocate(allocator);
+
+                    /**
+                     * 将 Channel 中的数据读取到刚分配的 ByteBuf 中 {@link io.netty.channel.socket.nio.NioSocketChannel#doReadBytes(ByteBuf)} 
+                     */
                     allocHandle.lastBytesRead(doReadBytes(byteBuf));
                     if (allocHandle.lastBytesRead() <= 0) {
                         // nothing was read. release the buffer.

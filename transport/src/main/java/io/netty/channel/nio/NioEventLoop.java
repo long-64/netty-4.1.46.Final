@@ -797,9 +797,14 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             /**
              * 读事件、接受链接事件
              * 1、如果当前 NioEventLoop 是 Worker线程的话，这里就是 OP_READ
+             *   这里 channel 是 `NioServerSocketChannel` 绑定 Unsafe 是 {@link AbstractNioByteChannel.NioByteUnsafe#read()}
              * 2、如果当前 NioEventLoop 是 Boss 线程的话，这里就是 OP_ACCEPT 事件
              */
             if ((readyOps & (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)) != 0 || readyOps == 0) {
+
+                /**
+                 *  {@link AbstractNioByteChannel.NioByteUnsafe#read()}
+                 */
                 unsafe.read();
             }
         } catch (CancelledKeyException ignored) {

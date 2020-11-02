@@ -93,7 +93,10 @@ abstract class PoolArena<T> implements PoolArenaMetric {
         directMemoryCacheAlignment = cacheAlignment;
         directMemoryCacheAlignmentMask = cacheAlignment - 1;
         subpageOverflowMask = ~(pageSize - 1);
-        // 初始化 tinySubPagePools
+        /**
+         * 初始化 tinySubPagePools {@link #newSubpagePoolArray(int)}
+         *  numTinySubpagePools 默认是：32
+         */
         tinySubpagePools = newSubpagePoolArray(numTinySubpagePools);
         for (int i = 0; i < tinySubpagePools.length; i ++) {
             tinySubpagePools[i] = newSubpagePoolHead(pageSize);
@@ -201,7 +204,7 @@ abstract class PoolArena<T> implements PoolArenaMetric {
      */
     private void allocate(PoolThreadCache cache, PooledByteBuf<T> buf, final int reqCapacity) {
         /**
-         * 规则化 {@link #normalizeCapacity(int)}
+         *  进行内存规则化 {@link #normalizeCapacity(int)}
          */
         final int normCapacity = normalizeCapacity(reqCapacity);
         /**

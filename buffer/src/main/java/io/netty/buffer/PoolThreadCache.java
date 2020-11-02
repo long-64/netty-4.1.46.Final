@@ -142,7 +142,7 @@ final class PoolThreadCache {
         if (cacheSize > 0 && numCaches > 0) {
 
             /**
-             * 缓存数组 {@link MemoryRegionCache#MemoryRegionCache(int, SizeClass)}
+             * 缓存 (ByteBuf) 数组 {@link MemoryRegionCache#MemoryRegionCache(int, SizeClass)}
              */
             @SuppressWarnings("unchecked")
             MemoryRegionCache<T>[] cache = new MemoryRegionCache[numCaches];
@@ -475,6 +475,10 @@ final class PoolThreadCache {
                 return false;
             }
             initBuf(entry.chunk, entry.nioBuffer, entry.handle, buf, reqCapacity);
+
+            /**
+             * 将对象回收 {@link Entry#recycle()}
+             */
             entry.recycle();
 
             // allocations is not thread-safe which is fine as this is only called from the same thread all time.
@@ -549,6 +553,10 @@ final class PoolThreadCache {
                 chunk = null;
                 nioBuffer = null;
                 handle = -1;
+
+                /**
+                 * {@link io.netty.util.Recycler.DefaultHandle#recycle(Object)}
+                 */
                 recyclerHandle.recycle(this);
             }
         }
