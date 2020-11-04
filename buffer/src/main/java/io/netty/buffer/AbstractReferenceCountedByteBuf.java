@@ -115,7 +115,7 @@ public abstract class AbstractReferenceCountedByteBuf extends AbstractByteBuf {
         if (result) {
 
             /**
-             *  {@link PooledByteBuf#deallocate()}
+             *  内存释放 {@link PooledByteBuf#deallocate()}
              */
             deallocate();
         }

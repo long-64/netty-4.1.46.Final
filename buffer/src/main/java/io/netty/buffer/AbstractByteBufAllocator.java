@@ -201,6 +201,12 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         return directBuffer(initialCapacity, DEFAULT_MAX_CAPACITY);
     }
 
+    /**
+     * 分配直接内存。（池化、非池化）
+     * @param initialCapacity
+     * @param maxCapacity
+     * @return
+     */
     @Override
     public ByteBuf directBuffer(int initialCapacity, int maxCapacity) {
         if (initialCapacity == 0 && maxCapacity == 0) {

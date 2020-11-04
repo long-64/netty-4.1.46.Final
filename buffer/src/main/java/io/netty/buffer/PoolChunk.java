@@ -398,7 +398,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
         // Obtain the head of the PoolSubPage pool that is owned by the PoolArena and synchronize on it.
         // This is need as we may add it back and so alter the linked-list structure.
         /**
-         * 这种方式找到Head节点，实际上这里Head就是之前分析的tinySubpagePools属性的第一个节点，也就是对应16Byte的那个节点
+         *  {@link PoolArena#findSubpagePoolHead(int)} 这种方式找到Head节点，实际上这里Head就是之前分析的tinySubpagePools属性的第一个节点，也就是对应16Byte的那个节点
          */
         PoolSubpage<T> head = arena.findSubpagePoolHead(normCapacity);
         // 这里将 11赋值个D
@@ -469,6 +469,14 @@ final class PoolChunk<T> implements PoolChunkMetric {
         }
     }
 
+    /**
+     *  将新创建的 Chunk 添加到 ChunkList 中。
+     *
+     * @param buf
+     * @param nioBuffer
+     * @param handle
+     * @param reqCapacity
+     */
     void initBuf(PooledByteBuf<T> buf, ByteBuffer nioBuffer, long handle, int reqCapacity) {
         int memoryMapIdx = memoryMapIdx(handle);
         int bitmapIdx = bitmapIdx(handle);

@@ -282,6 +282,12 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
             heapArenas = newArenaArray(nHeapArena);
             List<PoolArenaMetric> metrics = new ArrayList<PoolArenaMetric>(heapArenas.length);
             for (int i = 0; i < heapArenas.length; i ++) {
+                /**
+                 *
+                 * {@link PoolArena.HeapArena#HeapArena(PooledByteBufAllocator, int, int, int, int, int)}
+                 * 最终调用 {@link PoolArena#PoolArena(PooledByteBufAllocator, int, int, int, int, int)}
+                 *
+                 */
                 PoolArena.HeapArena arena = new PoolArena.HeapArena(this,
                         pageSize, maxOrder, pageShifts, chunkSize,
                         directMemoryCacheAlignment);
