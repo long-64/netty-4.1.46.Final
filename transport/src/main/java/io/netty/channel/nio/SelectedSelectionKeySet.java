@@ -25,6 +25,8 @@ import java.util.NoSuchElementException;
  * 优化 Selector KeySet 操作，
  *  设计目的:
  *      简化我们在轮训事件时的操作，不再每次轮训移除Key
+ *
+ *   remove,contains,iterator 这三个方法，默认不支持。
  */
 final class SelectedSelectionKeySet extends AbstractSet<SelectionKey> {
 

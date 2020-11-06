@@ -75,6 +75,10 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
         }
 
         if (executor == null) {
+
+            /**
+             *  {@link #newDefaultThreadFactory()}
+             */
             executor = new ThreadPerTaskExecutor(newDefaultThreadFactory());
         }
 
@@ -150,6 +154,10 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
     }
 
     protected ThreadFactory newDefaultThreadFactory() {
+
+        /**
+         * {@link DefaultThreadFactory#DefaultThreadFactory(Class)}
+         */
         return new DefaultThreadFactory(getClass());
     }
 

@@ -37,6 +37,8 @@ import java.util.List;
  * | ABC | DEF | GHI |
  * +-----+-----+-----+
  * </pre>
+ *
+ *   固定长度解析器
  */
 public class FixedLengthFrameDecoder extends ByteToMessageDecoder {
 
@@ -54,6 +56,10 @@ public class FixedLengthFrameDecoder extends ByteToMessageDecoder {
 
     @Override
     protected final void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
+
+        /**
+         * {@link #decode(ChannelHandlerContext, ByteBuf)} 解析出对象然后添加到 out.
+         */
         Object decoded = decode(ctx, in);
         if (decoded != null) {
             out.add(decoded);
@@ -70,6 +76,12 @@ public class FixedLengthFrameDecoder extends ByteToMessageDecoder {
      */
     protected Object decode(
             @SuppressWarnings("UnusedParameters") ChannelHandlerContext ctx, ByteBuf in) throws Exception {
+
+        /**
+         * 首先判断累加器中可读数据是否小于固定长度 `frameLength`
+         *   若是：表示不能读取完整的对象则返回空。
+         *   反之读取固定长度的数据返回 {@link io.netty.buffer.AbstractByteBuf#readRetainedSlice(int)}
+         */
         if (in.readableBytes() < frameLength) {
             return null;
         } else {

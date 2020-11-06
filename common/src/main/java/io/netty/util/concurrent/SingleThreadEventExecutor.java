@@ -463,6 +463,10 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
      * the tasks in the task queue and returns if it ran longer than {@code timeoutNanos}.
      */
     protected boolean runAllTasks(long timeoutNanos) {
+
+        /**
+         * 将任务给聚合 {@link #fetchFromScheduledTaskQueue()}
+         */
         fetchFromScheduledTaskQueue();
         Runnable task = pollTask();
         if (task == null) {

@@ -224,14 +224,16 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         final AbstractChannelHandlerContext newCtx;
         synchronized (this) {
 
-            // 校验名称是否重复
+            /**
+             * 校验名称是否重复 {@link #checkMultiplicity(ChannelHandler)}
+             */
             checkMultiplicity(handler);
 
             /**
+             * {@link #filterName(String, ChannelHandler)} 给 channelHandler 命名
+             *
              *  调用{@link #newContext(EventExecutorGroup, String, ChannelHandler)}
              *      这个Handler创建一个对应的 `{@link DefaultChannelHandlerContext}` 实例，并与之关联起来（Context中有一个Handler属性保存着对应的Handler实例
-             *
-             *  {@link #filterName(String, ChannelHandler)} 给 channelHandler 命名
              */
             newCtx = newContext(group, filterName(name, handler), handler);
 
@@ -255,10 +257,18 @@ public class DefaultChannelPipeline implements ChannelPipeline {
                 return this;
             }
         }
+
+        /**
+         * {@link #callHandlerAdded0(AbstractChannelHandlerContext)}
+         */
         callHandlerAdded0(newCtx);
         return this;
     }
 
+    /**
+     * 普通的链表插入操作，插入的位置是，尾节点的前面一个节点。
+     * @param newCtx
+     */
     private void addLast0(AbstractChannelHandlerContext newCtx) {
         AbstractChannelHandlerContext prev = tail.prev;
         newCtx.prev = prev;
@@ -399,6 +409,11 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return this;
     }
 
+    /**
+     *  Pipeline 添加节点。
+     * @param handler
+     * @return
+     */
     public final ChannelPipeline addLast(ChannelHandler handler) {
         return addLast(null, handler);
     }
@@ -460,8 +475,15 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return StringUtil.simpleClassName(handlerType) + "#0";
     }
 
+    /**
+     * 删除节点
+     */
     @Override
     public final ChannelPipeline remove(ChannelHandler handler) {
+        /**
+         *  {@link #getContextOrDie(ChannelHandler)}
+         *   删除核心逻辑 {@link #remove(AbstractChannelHandlerContext)}
+         */
         remove(getContextOrDie(handler));
         return this;
     }
@@ -643,6 +665,11 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     private static void checkMultiplicity(ChannelHandler handler) {
         if (handler instanceof ChannelHandlerAdapter) {
             ChannelHandlerAdapter h = (ChannelHandlerAdapter) handler;
+
+            /**
+             * 判断 Handler 是否是一个为共享的Handler
+             * 另外判断是否添加过。
+             */
             if (!h.isSharable() && h.added) {
                 throw new ChannelPipelineException(
                         h.getClass().getName() +
@@ -654,6 +681,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
     private void callHandlerAdded0(final AbstractChannelHandlerContext ctx) {
         try {
+            /**
+             *  {@link AbstractChannelHandlerContext#callHandlerAdded()}
+             */
             ctx.callHandlerAdded();
         } catch (Throwable t) {
             boolean removed = false;
@@ -682,6 +712,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     private void callHandlerRemoved0(final AbstractChannelHandlerContext ctx) {
         // Notify the complete removal.
         try {
+
+            /**
+             * {@link AbstractChannelHandlerContext#callHandlerRemoved()}
+             */
             ctx.callHandlerRemoved();
         } catch (Throwable t) {
             fireExceptionCaught(new ChannelPipelineException(
@@ -970,6 +1004,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
     @Override
     public final ChannelPipeline fireChannelRead(Object msg) {
+
+        /**
+         * {@link AbstractChannelHandlerContext#invokeChannelRead(AbstractChannelHandlerContext, Object)}
+         */
         AbstractChannelHandlerContext.invokeChannelRead(head, msg);
         return this;
     }

@@ -475,6 +475,11 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     }
 
     /**
+     *   该方法包含 三个过程。
+     *   1、检测IO 事件
+     *   2、处理IO 事件
+     *   3、执行任务队列
+     *
      * 服务端Selector事件轮询
      *
      *  1、selector 每一次轮训都计数 selectCnt++,
@@ -540,7 +545,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                     try {
                         if (strategy > 0) {
                             /**
-                             * processSelectedKeys {@link #processSelectedKeys()}
+                             *  【处理IO 事件】 processSelectedKeys {@link #processSelectedKeys()}
                              */
                             processSelectedKeys();
                         }
@@ -558,6 +563,10 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                         ranTasks = runAllTasks(ioTime * (100 - ioRatio) / ioRatio);
                     }
                 } else {
+
+                    /**
+                     *  执行任务队列 {@link #runAllTasks(long)}
+                     */
                     ranTasks = runAllTasks(0); // This will run the minimum number of tasks
                 }
 
@@ -640,6 +649,10 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     }
 
     private void processSelectedKeys() {
+
+        /**
+         * selectedKeys 是 {@link #openSelector()} 存储已注册的事件
+         */
         if (selectedKeys != null) {
 
             /**
@@ -744,6 +757,11 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /**
+     * 处理IO 事件
+     * @param k
+     * @param ch
+     */
     private void processSelectedKey(SelectionKey k, AbstractNioChannel ch) {
          // 获取Channel 中的 unsafe
         final AbstractNioChannel.NioUnsafe unsafe = ch.unsafe();
@@ -803,7 +821,8 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             if ((readyOps & (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)) != 0 || readyOps == 0) {
 
                 /**
-                 *  {@link AbstractNioByteChannel.NioByteUnsafe#read()}
+                 *  处理 “OP_READ” 读取事件  {@link AbstractNioByteChannel.NioByteUnsafe#read()}
+                 *   处理 "OP_ACCEPT" 连接事件 {@link AbstractNioMessageChannel.NioMessageUnsafe#read()}
                  */
                 unsafe.read();
             }

@@ -59,11 +59,20 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
 
         private final List<Object> readBuf = new ArrayList<Object>();
 
+        /**
+         * 处理 “ACCEPT” 连接事件
+         */
         @Override
         public void read() {
             assert eventLoop().inEventLoop();
+
+            // 获取服务 channel 的config、pipeline
             final ChannelConfig config = config();
             final ChannelPipeline pipeline = pipeline();
+
+            /**
+             *  Handle 控制接入流速。“控制多少个连接”
+             */
             final RecvByteBufAllocator.Handle allocHandle = unsafe().recvBufAllocHandle();
             allocHandle.reset(config);
 
@@ -72,6 +81,10 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
             try {
                 try {
                     do {
+
+                        /**
+                         *  处理 TCP 连接事件 {@link io.netty.channel.socket.nio.NioServerSocketChannel#doReadMessages(List)}
+                         */
                         int localRead = doReadMessages(readBuf);
                         if (localRead == 0) {
                             break;
@@ -90,6 +103,10 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                 int size = readBuf.size();
                 for (int i = 0; i < size; i ++) {
                     readPending = false;
+
+                    /**
+                     *  {@link io.netty.channel.DefaultChannelPipeline#fireChannelRead(Object)}
+                     */
                     pipeline.fireChannelRead(readBuf.get(i));
                 }
                 readBuf.clear();

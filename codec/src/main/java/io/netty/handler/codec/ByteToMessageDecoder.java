@@ -76,6 +76,9 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
 
     /**
      * Cumulate {@link ByteBuf}s by merge them into one {@link ByteBuf}'s, using memory copies.
+     *
+     *  1、判断是当前 ByteBuf 是否能容纳传进来的 ByteBuf.
+     *  2、如果不能容纳就需要扩容，就是 `expandCumulation`
      */
     public static final Cumulator MERGE_CUMULATOR = new Cumulator() {
         @Override
@@ -275,6 +278,17 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      */
     protected void handlerRemoved0(ChannelHandlerContext ctx) throws Exception { }
 
+    /**
+     *
+     *  解码过程大致分为 两步：
+     *   1、通过 一个 ByteBuf 这么一个累加器把所有读进的字节流累加到当前的累加器。
+     *   2、子类 `decode` 方法进行解析。
+     *   最后：将解析到的 ByteBuf 向下传播。
+     *
+     * @param ctx
+     * @param msg
+     * @throws Exception
+     */
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof ByteBuf) {
@@ -287,13 +301,13 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                 first = cumulation == null;
 
                 /**
-                 * 将累加器赋值为刚读进的对象。{@link ByteToMessageDecoder#MERGE_CUMULATOR}
+                 * 【 1、将累加器赋值为刚读进的对象 】。{@link ByteToMessageDecoder.MERGE_CUMULATOR }
                  */
                 cumulation = cumulator.cumulate(ctx.alloc(),
                         first ? Unpooled.EMPTY_BUFFER : cumulation, (ByteBuf) msg);
 
                 /**
-                 *  解码 {@link #callDecode(ChannelHandlerContext, ByteBuf, List)}
+                 *  【 2、解码 】 {@link #callDecode(ChannelHandlerContext, ByteBuf, List)}
                  */
                 callDecode(ctx, cumulation, out);
             } catch (DecoderException e) {
@@ -317,14 +331,16 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                 firedChannelRead |= out.insertSinceRecycled();
 
                 /**
-                 * 向下传播 {@link #fireChannelRead(ChannelHandlerContext, List, int)}
+                 * 【3、 向下传播 】 {@link #fireChannelRead(ChannelHandlerContext, List, int)}
                  */
                 fireChannelRead(ctx, out, size);
                 out.recycle();
             }
         } else {
 
-            // 不是 ByteBuf 向下传播。
+            /**
+             * 不是 ByteBuf 向下传播 {@link io.netty.channel.AbstractChannelHandlerContext#fireChannelRead(Object)}
+             */
             ctx.fireChannelRead(msg);
         }
     }

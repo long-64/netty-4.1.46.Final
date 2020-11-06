@@ -407,8 +407,20 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
     }
 
     private void invokeChannelRead(Object msg) {
+
+        /**
+         * 判断当前 Handler 是否已添加 {@link #invokeHandler()}
+         */
         if (invokeHandler()) {
             try {
+
+                /**
+                 *  Head 向下传播 {@link DefaultChannelPipeline.HeadContext#channelRead(ChannelHandlerContext, Object)}
+                 *
+                 *  `ByteToMessage` 【 解码器 】 {@link io.netty.handler.codec.ByteToMessageDecoder#channelRead(ChannelHandlerContext, Object)}
+                 *
+                 *   【 最终处理 】  {@link DefaultChannelPipeline.TailContext#channelRead(ChannelHandlerContext, Object)}
+                 */
                 ((ChannelInboundHandler) handler()).channelRead(this, msg);
             } catch (Throwable t) {
                 notifyHandlerException(t);
@@ -747,6 +759,8 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 
     @Override
     public ChannelFuture write(final Object msg, final ChannelPromise promise) {
+
+        // 【 write 】
         write(msg, false, promise);
 
         return promise;
@@ -1041,6 +1055,10 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         // We must call setAddComplete before calling handlerAdded. Otherwise if the handlerAdded method generates
         // any pipeline events ctx.handler() will miss them because the state will not allow it.
         if (setAddComplete()) {
+
+            /**
+             * {@link ChannelInitializer#handlerAdded(ChannelHandlerContext)}
+             */
             handler().handlerAdded(this);
         }
     }
@@ -1049,6 +1067,10 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         try {
             // Only call handlerRemoved(...) if we called handlerAdded(...) before.
             if (handlerState == ADD_COMPLETE) {
+
+                /**
+                 *  删除逻辑 {@link ChannelInitializer#handlerRemoved(ChannelHandlerContext)}
+                 */
                 handler().handlerRemoved(this);
             }
         } finally {

@@ -130,6 +130,9 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             }
         }
 
+        /**
+         *  处理 "Read" 读取事件
+         */
         @Override
         public final void read() {
             final ChannelConfig config = config();
@@ -159,7 +162,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             try {
                 do {
                     /**
-                     *  {@link io.netty.channel.DefaultMaxMessagesRecvByteBufAllocator.MaxMessageHandle#allocate(ByteBufAllocator)}
+                     *  分配 byteBuf 【 byte 内存分配 】 {@link io.netty.channel.DefaultMaxMessagesRecvByteBufAllocator.MaxMessageHandle#allocate(ByteBufAllocator)}
                      */
                     byteBuf = allocHandle.allocate(allocator);
 

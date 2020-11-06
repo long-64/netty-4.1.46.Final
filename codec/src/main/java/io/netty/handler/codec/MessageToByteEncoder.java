@@ -92,6 +92,10 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
      * {@link ChannelOutboundHandler} in the {@link ChannelPipeline}.
      */
     public boolean acceptOutboundMessage(Object msg) throws Exception {
+
+        /**
+         * {@link TypeParameterMatcher#match(Object)}
+         */
         return matcher.match(msg);
     }
 
@@ -101,11 +105,15 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
         try {
 
             /**
-             * 判断当前编码器是否支持需要发送消息。
+             * 判断当前编码器是否支持需要发送消息。{@link #acceptOutboundMessage(Object)}
              */
             if (acceptOutboundMessage(msg)) {
                 @SuppressWarnings("unchecked")
                 I cast = (I) msg;
+
+                /**
+                 * 内存分配 {@link #allocateBuffer(ChannelHandlerContext, Object, boolean)}
+                 */
                 buf = allocateBuffer(ctx, cast, preferDirect);
                 try {
                     encode(ctx, cast, buf);
@@ -114,6 +122,10 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
                 }
 
                 if (buf.isReadable()) {
+
+                    /**
+                     *   写 buffer 队列 {@link io.netty.channel.AbstractChannelHandlerContext#write(Object, ChannelPromise)}
+                     */
                     ctx.write(buf, promise);
                 } else {
                     buf.release();

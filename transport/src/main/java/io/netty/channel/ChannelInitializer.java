@@ -83,7 +83,7 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
         // Normally this method will never be called as handlerAdded(...) should call initChannel(...) and remove
         // the handler.
         /**
-         * 调用 {@link #initChannel(Channel)} 将自定义 Handler 添加到 channelPipeline
+         * 调用 {@link #initChannel(ChannelHandlerContext)} 将自定义 Handler 添加到 channelPipeline
          */
         if (initChannel(ctx)) {
             // we called initChannel(...) so we need to call now pipeline.fireChannelRegistered() to ensure we not
@@ -140,6 +140,10 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
     private boolean initChannel(ChannelHandlerContext ctx) throws Exception {
         if (initMap.add(ctx)) { // Guard against re-entrance.
             try {
+
+                /**
+                 *  由子类实现。
+                 */
                 initChannel((C) ctx.channel());
             } catch (Throwable cause) {
                 // Explicitly call exceptionCaught(...) as we removed the handler before calling initChannel(...).
