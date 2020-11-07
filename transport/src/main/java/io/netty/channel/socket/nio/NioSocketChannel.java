@@ -43,6 +43,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.ScatteringByteChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
@@ -357,10 +358,24 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
         javaChannel().close();
     }
 
+    /**
+     * 将 Channel 数据写入 ByteBuf.
+     *
+     *   0：则表示没有读取到数据，则退出循环。
+     *   -1： 表示对端已经关闭连接，则退出循环。
+     *
+     * @param byteBuf
+     * @return
+     * @throws Exception
+     */
     @Override
     protected int doReadBytes(ByteBuf byteBuf) throws Exception {
         final RecvByteBufAllocator.Handle allocHandle = unsafe().recvBufAllocHandle();
         allocHandle.attemptedBytesRead(byteBuf.writableBytes());
+
+        /**
+         *  【核心实现】 {@link io.netty.buffer.AbstractByteBuf#writeBytes(ScatteringByteChannel, int)}
+         */
         return byteBuf.writeBytes(javaChannel(), allocHandle.attemptedBytesRead());
     }
 

@@ -89,8 +89,7 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
             // we called initChannel(...) so we need to call now pipeline.fireChannelRegistered() to ensure we not
             // miss an event.
             /**
-             * 这里是循环注册，
-             *   将请求发送给下一个 channelHandlerContext {@link DefaultChannelPipeline#fireChannelRegistered()}
+             *  当channel注册到selector时,  触发{@link DefaultChannelPipeline#fireChannelRegistered()}
              */
             ctx.pipeline().fireChannelRegistered();
 

@@ -24,6 +24,8 @@ import io.netty.channel.ChannelMetadata;
 import io.netty.channel.ChannelOutboundBuffer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.DefaultChannelConfig;
+import io.netty.channel.DefaultChannelPipeline;
+import io.netty.channel.DefaultMaxMessagesRecvByteBufAllocator;
 import io.netty.channel.FileRegion;
 import io.netty.channel.RecvByteBufAllocator;
 import io.netty.channel.internal.ChannelUtils;
@@ -170,6 +172,13 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                      * 将 Channel 中的数据读取到刚分配的 ByteBuf 中 {@link io.netty.channel.socket.nio.NioSocketChannel#doReadBytes(ByteBuf)} 
                      */
                     allocHandle.lastBytesRead(doReadBytes(byteBuf));
+
+                    /**
+                     *   读取数据位置 {@link DefaultMaxMessagesRecvByteBufAllocator.MaxMessageHandle#lastBytesRead()}
+                     *
+                     *   0： 则表示没有读取到数据，则退出循环。
+                     *   -1： 表示对端已经关闭连接，则退出循环。
+                     */
                     if (allocHandle.lastBytesRead() <= 0) {
                         // nothing was read. release the buffer.
                         byteBuf.release();
@@ -184,11 +193,19 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 
                     allocHandle.incMessagesRead(1);
                     readPending = false;
+
+                    /**
+                     * 事件传播 {@link io.netty.channel.DefaultChannelPipeline#fireChannelRead(Object)}
+                     */
                     pipeline.fireChannelRead(byteBuf);
                     byteBuf = null;
                 } while (allocHandle.continueReading());
 
                 allocHandle.readComplete();
+
+                /**
+                 * 所有数据处理完后，触发 {@link DefaultChannelPipeline#fireChannelReadComplete()}
+                 */
                 pipeline.fireChannelReadComplete();
 
                 if (close) {

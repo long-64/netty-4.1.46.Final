@@ -807,6 +807,10 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             // 写事件
             if ((readyOps & SelectionKey.OP_WRITE) != 0) {
                 // Call forceFlush which will also take care of clear the OP_WRITE once there is nothing left to write
+
+                /**
+                 *  处理 `OP_WRITE` 写事件 {@link AbstractNioChannel.AbstractNioUnsafe#forceFlush()}
+                 */
                 ch.unsafe().forceFlush();
             }
 
@@ -821,7 +825,8 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             if ((readyOps & (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)) != 0 || readyOps == 0) {
 
                 /**
-                 *  处理 “OP_READ” 读取事件  {@link AbstractNioByteChannel.NioByteUnsafe#read()}
+                 *   处理 “OP_READ” 读取事件  {@link AbstractNioByteChannel.NioByteUnsafe#read()}
+                 *
                  *   处理 "OP_ACCEPT" 连接事件 {@link AbstractNioMessageChannel.NioMessageUnsafe#read()}
                  */
                 unsafe.read();

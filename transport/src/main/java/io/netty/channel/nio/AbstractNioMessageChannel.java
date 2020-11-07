@@ -57,6 +57,9 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
 
     private final class NioMessageUnsafe extends AbstractNioUnsafe {
 
+        /**
+         * 用来保存客户端NioSocketChannel，默认一次不超过16个。
+         */
         private final List<Object> readBuf = new ArrayList<Object>();
 
         /**
@@ -94,6 +97,9 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                             break;
                         }
 
+                        /**
+                         * {@link io.netty.channel.DefaultMaxMessagesRecvByteBufAllocator.MaxMessageHandle#incMessagesRead(int)}
+                         */
                         allocHandle.incMessagesRead(localRead);
                     } while (allocHandle.continueReading());
                 } catch (Throwable t) {
@@ -105,7 +111,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                     readPending = false;
 
                     /**
-                     *  {@link io.netty.channel.DefaultChannelPipeline#fireChannelRead(Object)}
+                     *  客户端请求触发。 {@link io.netty.channel.DefaultChannelPipeline#fireChannelRead(Object)}
                      */
                     pipeline.fireChannelRead(readBuf.get(i));
                 }

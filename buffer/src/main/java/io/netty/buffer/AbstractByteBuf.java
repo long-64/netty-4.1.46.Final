@@ -1134,6 +1134,13 @@ public abstract class AbstractByteBuf extends ByteBuf {
     @Override
     public int writeBytes(ScatteringByteChannel in, int length) throws IOException {
         ensureWritable(length);
+
+        /**
+         *  区分 池化和非池化
+         *   {@link PooledByteBuf#setBytes(int, ByteBuf, int)}
+         *   {@link UnpooledHeapByteBuf#setBytes(int, InputStream, int)}
+         *   {@link UnpooledDirectByteBuf#setBytes(int, ByteBuf, int)}
+         */
         int writtenBytes = setBytes(writerIndex, in, length);
         if (writtenBytes > 0) {
             writerIndex += writtenBytes;

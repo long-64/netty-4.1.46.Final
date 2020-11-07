@@ -420,6 +420,8 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
                  *  `ByteToMessage` 【 解码器 】 {@link io.netty.handler.codec.ByteToMessageDecoder#channelRead(ChannelHandlerContext, Object)}
                  *
                  *   【 最终处理 】  {@link DefaultChannelPipeline.TailContext#channelRead(ChannelHandlerContext, Object)}
+                 *
+                 *    对应 【OP_ACCEPT 】事件，最终执行 {@link io.netty.bootstrap.ServerBootstrap.ServerBootstrapAcceptor#channelRead(ChannelHandlerContext, Object)}
                  */
                 ((ChannelInboundHandler) handler()).channelRead(this, msg);
             } catch (Throwable t) {
@@ -548,6 +550,10 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
     private void invokeBind(SocketAddress localAddress, ChannelPromise promise) {
         if (invokeHandler()) {
             try {
+
+                /**
+                 *  绑定事件 {@link DefaultChannelPipeline.HeadContext#bind(ChannelHandlerContext, SocketAddress, ChannelPromise)}
+                 */
                 ((ChannelOutboundHandler) handler()).bind(this, localAddress, promise);
             } catch (Throwable t) {
                 notifyOutboundHandlerException(t, promise);
@@ -891,6 +897,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
     public ChannelFuture writeAndFlush(Object msg) {
 
         /**
+         *   获取 `DefaultChannelPromise` {@link #newPromise()}
          *  {@link #writeAndFlush(Object, ChannelPromise)}
          */
         return writeAndFlush(msg, newPromise());

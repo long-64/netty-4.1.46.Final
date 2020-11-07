@@ -892,6 +892,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return buf.toString();
     }
 
+    /**
+     * 当channel注册到selector时, 触发。
+     * @return
+     */
     @Override
     public final ChannelPipeline fireChannelRegistered() {
 
@@ -974,6 +978,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     }
 
+    /**
+     * 当channel的socket绑定完成时, 触发。
+     * @return
+     */
     @Override
     public final ChannelPipeline fireChannelActive() {
 
@@ -1002,6 +1010,11 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return this;
     }
 
+    /**
+     * 客户端请求触发
+     * @param msg
+     * @return
+     */
     @Override
     public final ChannelPipeline fireChannelRead(Object msg) {
 
@@ -1012,6 +1025,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return this;
     }
 
+    /**
+     *  所有数据处理完后触发。
+     * @return
+     */
     @Override
     public final ChannelPipeline fireChannelReadComplete() {
         AbstractChannelHandlerContext.invokeChannelReadComplete(head);

@@ -610,7 +610,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             // 完成绑定
             boolean wasActive = isActive();
             try {
-                // 使用原生API 绑定端口
+                /**
+                 * 使用原生API 绑定端口 {@link io.netty.channel.socket.nio.NioServerSocketChannel#doBind(SocketAddress)}
+                 */
                 doBind(localAddress);
             } catch (Throwable t) {
                 safeSetFailure(promise, t);
@@ -627,7 +629,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                     }
                 });
             }
-            //设置promise结果为已成功完成绑定操作，外部可以通过bind返回的该promise得知已完成绑定操作。
+            /**
+             * 设置promise结果为已成功完成绑定操作，外部可以通过bind返回的该promise得知已完成绑定操作。
+             */
             safeSetSuccess(promise);
         }
 
@@ -951,7 +955,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
 
             /**
-             * 插入写队列
+             * 插入写队列 {@link ChannelOutboundBuffer#addMessage(Object, int, ChannelPromise)}
              */
             outboundBuffer.addMessage(msg, size, promise);
         }
@@ -1005,7 +1009,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             try {
 
                 /**
-                 * 子类实现 {@link io.netty.channel.nio.AbstractNioMessageChannel#doWrite(ChannelOutboundBuffer)}
+                 *  把数据写入 SocketChannel {@link io.netty.channel.nio.AbstractNioMessageChannel#doWrite(ChannelOutboundBuffer)}
                  */
                 doWrite(outboundBuffer);
             } catch (Throwable t) {

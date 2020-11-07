@@ -264,6 +264,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             // msg 就是 NIOSocketChannel。
             final Channel child = (Channel) msg;
             //为NioSocketChannel的责任链上添加childHandler
+
             child.pipeline().addLast(childHandler);
             //为NioSocketChannel添加socket属性Option
             setChannelOptions(child, childOptions, logger);
@@ -293,6 +294,13 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             logger.warn("Failed to register an accepted channel: {}", child, t);
         }
 
+        /**
+         *  若ServerSocketChannel在accept子连接时抛出异常，若ServerSocketChannel的autoRead为true，
+         *  则设置其为false，即不允许自动接收客户端连接，并延迟1s后再设置其为true，使其允许自动接收客户端连接；
+         * @param ctx
+         * @param cause
+         * @throws Exception
+         */
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
             final ChannelConfig config = ctx.channel().config();
