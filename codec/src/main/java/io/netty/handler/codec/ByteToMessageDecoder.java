@@ -101,7 +101,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     //   assumed to be shared (e.g. refCnt() > 1) and the reallocation may not be safe.
 
                     /**
-                     * 进行扩容
+                     * 进行扩容 {@link ByteToMessageDecoder#expandCumulation(ByteBufAllocator, ByteBuf, ByteBuf)}
                      */
                     return expandCumulation(alloc, cumulation, in);
                 }
@@ -565,6 +565,9 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      *
      * By default this will just call {@link #decode(ChannelHandlerContext, ByteBuf, List)} but sub-classes may
      * override this for some special cleanup operation.
+     *
+     *  在 Channel 关闭后会调用一次。主要用于 处理 ByteBuf 最后剩余的字节数据。
+     *      Netty 中 decodeLast 的默认实现只是简单的调用 decode 方法，如果有特殊的业务需求。则可以通过重写 decodeLast() 方法自定义逻辑
      */
     protected void decodeLast(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
         if (in.isReadable()) {

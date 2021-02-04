@@ -153,6 +153,10 @@ public final class ChannelOutboundBuffer {
                 if (!entry.promise.setUncancellable()) {
                     // Was cancelled so make sure we free up memory and notify about the freed bytes
                     int pending = entry.cancel();
+
+                    /**
+                     * 将去待发送的数据，如果总字节数低于 `低水位` 那么 Channel 将变成 `可写` 状态
+                     */
                     decrementPendingOutboundBytes(pending, false, true);
                 }
                 entry = entry.next;

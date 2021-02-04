@@ -38,6 +38,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * technics of
  * <a href="https://www.facebook.com/notes/facebook-engineering/scalable-memory-allocation-using-jemalloc/480222803919">
  * Scalable memory allocation using jemalloc</a>.
+ *
+ *  内存释放后，并没有直接安徽 `PoolChunk` 而是缓存在 对应 `Cache`
+ *
+ *   tiny: 0~ 512B
+ *   small: 512B、1KB、2KB、4KB
+ *   normal: 8KB、16KB、32KB
  */
 final class PoolThreadCache {
 
@@ -220,6 +226,8 @@ final class PoolThreadCache {
         }
         /**
          * 【 allocate 】{@link MemoryRegionCache#allocate(PooledByteBuf, int)}
+         *
+         *  默认每执行 8192 次 allocate()，就会调用一次 trim() 进行内存整理
          */
         boolean allocated = cache.allocate(buf, reqCapacity);
         if (++ allocations >= freeSweepAllocationThreshold) {
@@ -419,6 +427,11 @@ final class PoolThreadCache {
         }
     }
 
+    /**
+     *  `实际就是一个队列，当内存释放时，将内存块加入队列当中，下次再分配同样规格的内存时，直接从队列中取出空闲的内存块`
+     *
+     * @param <T>
+     */
     private abstract static class MemoryRegionCache<T> {
         private final int size;
         private final Queue<Entry<T>> queue;

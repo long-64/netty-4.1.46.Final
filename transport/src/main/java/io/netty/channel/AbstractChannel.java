@@ -969,6 +969,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 return;
             }
 
+            /**
+             *  `addFlush`  {@link ChannelOutboundBuffer#addFlush()}
+             */
             outboundBuffer.addFlush();
 
             /**

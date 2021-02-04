@@ -108,11 +108,19 @@ final class PoolChunk<T> implements PoolChunkMetric {
     private static final int INTEGER_SIZE_MINUS_ONE = Integer.SIZE - 1;
 
     final PoolArena<T> arena;
+
+    // 存储的数据
     final T memory;
     final boolean unpooled;
     final int offset;
+
+    // 满二叉树中的节点是否被分配，数组大小为 4096
     private final byte[] memoryMap;
+
+    // 满二叉树中的节点高度，数组大小为 4096
     private final byte[] depthMap;
+
+    // PoolChunk 中管理的 2048 个 8K 内存块
     private final PoolSubpage<T>[] subpages;
     /** Used to determine if the requested capacity is equal to or greater than pageSize. */
     private final int subpageOverflowMask;
@@ -132,6 +140,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
     // This may be null if the PoolChunk is unpooled as pooling the ByteBuffer instances does not make any sense here.
     private final Deque<ByteBuffer> cachedNioBuffers;
 
+    // 剩余的内存大小
     private int freeBytes;
 
     PoolChunkList<T> parent;
@@ -393,6 +402,8 @@ final class PoolChunk<T> implements PoolChunkMetric {
      *
      * @param normCapacity normalized capacity
      * @return index in memoryMap
+     *
+     *  分配 subPage
      */
     private long allocateSubpage(int normCapacity) {
         // Obtain the head of the PoolSubPage pool that is owned by the PoolArena and synchronize on it.
@@ -429,7 +440,9 @@ final class PoolChunk<T> implements PoolChunkMetric {
                 // 【init】
                 subpage.init(head, normCapacity);
             }
-            // 取出一个 SubPage 【 allocate 】
+            /**
+             * 取出一个 SubPage 【 allocate 】{@link PoolSubpage#allocate()}
+             */
             return subpage.allocate();
         }
     }

@@ -827,6 +827,10 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 
     @Override
     public ChannelFuture writeAndFlush(Object msg, ChannelPromise promise) {
+
+        /**
+         *  write {@link #write(Object, boolean, ChannelPromise)}
+         */
         write(msg, true, promise);
         return promise;
     }
@@ -856,8 +860,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         }
 
         /**
-         * 从 Tail 节点开始，并且是 Outbound 事件，所以会找到 Tail 节点的上一个 OutBoundHandler。
-         *  {@link #findContextOutbound(int)}
+         * 从 Tail 节点开始，并且是 Outbound 事件，所以会找到 Tail 节点的上一个 OutBoundHandler。{@link #findContextOutbound(int)}
          */
         final AbstractChannelHandlerContext next = findContextOutbound(flush ?
                 (MASK_WRITE | MASK_FLUSH) : MASK_WRITE);
@@ -866,12 +869,15 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         // 获取 executor
         EventExecutor executor = next.executor();
 
-        // 判断是否是 EventLoop 线程。
+        /*
+         * 判断是否是 EventLoop 线程。(如果当前线程和 EventLoop 分配给当前 Channel 的线程是同一个线程的话。所提交的任务将立即执行，
+         *    否则，封装成一个 Task，放入 EventLoop 任务队列，稍后执行。)
+         */
         if (executor.inEventLoop()) {
             if (flush) {
 
                 /**
-                 * 调用 flush {@link #invokeWriteAndFlush(Object, ChannelPromise)}
+                 *  `调用 flush` {@link #invokeWriteAndFlush(Object, ChannelPromise)}
                  */
                 next.invokeWriteAndFlush(m, promise);
             } else {

@@ -146,6 +146,15 @@ abstract class PoolArena<T> implements PoolArenaMetric {
 
     abstract boolean isDirect();
 
+    /**
+     *
+     *  内存分配，
+     *
+     * @param cache  线程私有的缓存
+     * @param reqCapacity
+     * @param maxCapacity
+     * @return
+     */
     PooledByteBuf<T> allocate(PoolThreadCache cache, int reqCapacity, int maxCapacity) {
         /**
          * 创建ByteBuf.
@@ -187,7 +196,7 @@ abstract class PoolArena<T> implements PoolArenaMetric {
 
     /**
      *  TODO ByteBuf 内存分配重点
-     * @param cache
+     * @param cache 线程私有缓存
      * @param buf
      * @param reqCapacity
      *
@@ -201,6 +210,8 @@ abstract class PoolArena<T> implements PoolArenaMetric {
      *      1、一个 Chunk 会以 Page 为单位进行切分，8KB 对应一个 Page，
      *      2、一个 Chunk = 2048个Page。
      *      3、小于 8KB，是 SubPage.
+     *
+     *  3、tiny、small 优先尝试从 `PoolThreadCache` 中分配。如果分配失败，走 `PoolArena` 分配
      */
     private void allocate(PoolThreadCache cache, PooledByteBuf<T> buf, final int reqCapacity) {
         /**

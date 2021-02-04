@@ -264,6 +264,8 @@ import java.util.List;
  * @param <S>
  *        the state type which is usually an {@link Enum}; use {@link Void} if state management is
  *        unused
+ *
+ *    封装了缓冲区的管理，在读取缓冲区数据时，你无须再对字节长度进行检查。
  */
 public abstract class ReplayingDecoder<S> extends ByteToMessageDecoder {
 

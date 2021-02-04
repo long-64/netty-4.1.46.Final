@@ -19,10 +19,16 @@ package io.netty.buffer;
 final class PoolSubpage<T> implements PoolSubpageMetric {
 
     final PoolChunk<T> chunk; // 代表其子页属于哪个Chunk
+
+    // 对应满二叉树节点的下标
     private final int memoryMapIdx;
+
+    // PoolSubpage 在 PoolChunk 中 memory 的偏移量
     private final int runOffset;
     private final int pageSize;
-    private final long[] bitmap; // 用于记录子页的内存分配情况
+
+    // 用于记录子页的内存分配情况
+    private final long[] bitmap;
 
     // 是按照双向链表进行关联的，分别指向上一个节点和下一个节点
     PoolSubpage<T> prev;
@@ -31,9 +37,13 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
     boolean doNotDestroy;
     // 属性代表的是子页是按照多大内存进行划分的
     int elemSize;
+
+    // 最多可以存放多少小内存块：8K/elemSize
     private int maxNumElems;
     private int bitmapLength;
     private int nextAvail;
+
+    // 可用于分配的内存块个数
     private int numAvail;
 
     // TODO: Test if adding padding helps under contention
@@ -98,7 +108,7 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
         }
         // 获取一个 bitmap 中可用的ID，【getNextAvail 】
         final int bitmapIdx = getNextAvail();
-        // 除以64（bitmap 的相对下标）
+        // 除以64（bitmap 的相对下标） `定位到 bitmap 的数组下标`
         int q = bitmapIdx >>> 6;
         // 除以64，取余，其实就是当前决定ID的偏移量
         int r = bitmapIdx & 63;
@@ -107,7 +117,9 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
         bitmap[q] |= 1L << r;
         // 可用的Subpage -1
         if (-- numAvail == 0) {
-            // 则移除相关 SubPage
+            /**
+             *  如果 PoolSubpage 没有可分配的内存块，从 PoolArena 双向链表中删除 {@link #removeFromPool()}
+             */
             removeFromPool();
         }
 
