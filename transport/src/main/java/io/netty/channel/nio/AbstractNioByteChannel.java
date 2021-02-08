@@ -134,6 +134,9 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 
         /**
          *  处理 "Read" 读取事件
+         *
+         *   1、分配 `ByteBuf` 内存。
+         *   2、
          */
         @Override
         public final void read() {
@@ -221,6 +224,10 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                 //
                 // See https://github.com/netty/netty/issues/2254
                 if (!readPending && !config.isAutoRead()) {
+
+                    /**
+                     * 清除 `OP_READ` 事件
+                     */
                     removeReadOp();
                 }
             }

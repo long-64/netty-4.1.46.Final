@@ -151,6 +151,8 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
             } finally {
                 ChannelPipeline pipeline = ctx.pipeline();
                 if (pipeline.context(this) != null) {
+
+                    // 将 ChannelInitializer 自身从 Pipeline 中移出，
                     pipeline.remove(this);
                 }
             }

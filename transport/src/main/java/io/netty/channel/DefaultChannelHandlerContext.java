@@ -23,6 +23,10 @@ final class DefaultChannelHandlerContext extends AbstractChannelHandlerContext {
 
     DefaultChannelHandlerContext(
             DefaultChannelPipeline pipeline, EventExecutor executor, String name, ChannelHandler handler) {
+
+        /**
+         *  super {@link AbstractChannelHandlerContext#AbstractChannelHandlerContext(DefaultChannelPipeline, EventExecutor, String, Class)}
+         */
         super(pipeline, executor, name, handler.getClass());
         this.handler = handler;
     }

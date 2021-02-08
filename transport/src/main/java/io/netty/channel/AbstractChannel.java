@@ -256,6 +256,10 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
     @Override
     public ChannelFuture bind(SocketAddress localAddress, ChannelPromise promise) {
+
+        /**
+         *  默认实现，端口绑定 {@link DefaultChannelPipeline#bind(SocketAddress, ChannelPromise)}
+         */
         return pipeline.bind(localAddress, promise);
     }
 
@@ -509,7 +513,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
              */
             if (eventLoop.inEventLoop()) {
                 /**
-                 * 【 核心 】{@link #register0(ChannelPromise)}
+                 * 【 核心注册 】{@link #register0(ChannelPromise)}
                  */
                 register0(promise);
             } else {
@@ -554,7 +558,18 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 /**
                  * 自定义 channelHandler 添加过程
                  *
+                 *   .childHandler(new ChannelInitializer<SocketChannel>() { // 设置 SocketChannel 对应的 Handler
+                 *      @Override
+                 *      public void initChannel(SocketChannel ch) {
+                 *          ch.pipeline().addLast(new FixedLengthFrameDecoder(10));
+                 *          ch.pipeline().addLast(new ResponseSampleEncoder());
+                 *          ch.pipeline().addLast(new RequestSampleHandler());
+                 *      }
+                 *  });
+                 *
                  * {@link AbstractChannelHandlerContext#invokeChannelRegistered(AbstractChannelHandlerContext)}
+                 *
+                 *  沿着 Pipeline 的 Hand 节点传播到 Tail 节点，并依次调用每个 ChannelHandler的 channelRegistered() 方法，然而此时 Channel 还未注册绑定地址。所以处于 非活动状态。
                  */
                 pipeline.fireChannelRegistered();
                 // Only fire a channelActive if the channel has never been registered. This prevents firing

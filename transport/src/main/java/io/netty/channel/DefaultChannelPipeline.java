@@ -230,9 +230,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             checkMultiplicity(handler);
 
             /**
-             * {@link #filterName(String, ChannelHandler)} 给 channelHandler 命名
+             *  生成Handler 名字 {@link #filterName(String, ChannelHandler)}
              *
-             *  调用{@link #newContext(EventExecutorGroup, String, ChannelHandler)}
+             *  创建新的 DefaultChannelHandlerContext 节点 {@link #newContext(EventExecutorGroup, String, ChannelHandler)}
              *      这个Handler创建一个对应的 `{@link DefaultChannelHandlerContext}` 实例，并与之关联起来（Context中有一个Handler属性保存着对应的Handler实例
              */
             newCtx = newContext(group, filterName(name, handler), handler);
@@ -259,7 +259,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
 
         /**
-         * {@link #callHandlerAdded0(AbstractChannelHandlerContext)}
+         *  回调用户方法 {@link #callHandlerAdded0(AbstractChannelHandlerContext)}
          */
         callHandlerAdded0(newCtx);
         return this;
@@ -431,7 +431,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             if (h == null) {
                 break;
             }
-            // [addLast]
+            /**
+             * 【 core】{@link #addLast(EventExecutorGroup, String, ChannelHandler)}
+             */
             addLast(executor, null, h);
         }
 
@@ -662,12 +664,16 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         oldCtx.next = newCtx;
     }
 
+    /**
+     *  检查该 Handler 有没有被添加过。
+     * @param handler
+     */
     private static void checkMultiplicity(ChannelHandler handler) {
         if (handler instanceof ChannelHandlerAdapter) {
             ChannelHandlerAdapter h = (ChannelHandlerAdapter) handler;
 
             /**
-             * 判断 Handler 是否是一个为共享的Handler
+             * 判断 Handler 是否是一个为共享的Handler （所谓共享就是这个 Handler 可以被重复添加到不同的 ChannelPipeline 中，共享的 Handler 必须要确保是线程安全的。）
              * 另外判断是否添加过。
              */
             if (!h.isSharable() && h.added) {
@@ -1079,6 +1085,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
     @Override
     public final ChannelFuture bind(SocketAddress localAddress, ChannelPromise promise) {
+
+        /**
+         * 绑定事件 {@link AbstractChannelHandlerContext#bind(SocketAddress, ChannelPromise)}
+         */
         return tail.bind(localAddress, promise);
     }
 

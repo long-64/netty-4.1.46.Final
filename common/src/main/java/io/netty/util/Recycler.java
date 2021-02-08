@@ -471,6 +471,7 @@ public abstract class Recycler<T> {
             // 表示获取当前WeakOrderQueue 中指向最后一个 Link 指针，也就是尾指针。
             Link tail = this.tail;
             int writeIndex;
+
             // Link 中 元素等于 16个，需要进行扩容。(如果链表尾部 Link 已经写满，那么再新建一个 Link 追加到链表尾部)
             if ((writeIndex = tail.get()) == LINK_CAPACITY) {
                 /**
@@ -490,7 +491,10 @@ public abstract class Recycler<T> {
             }
             // 根据指针，写入 `DefaultHandle`
             tail.elements[writeIndex] = handle;
-            // 设置为null，表示当前 Handle 不是通过 Stack进行回收的。
+
+            /*
+             * 设置为null, 如果 Stack 不再使用，期待被GC 回收，发现 handle 中还持有 Stack 的引用，那么就无法被GC 回收，从而造成内存泄露
+             */
             handle.stack = null;
             // we lazy set to ensure that setting stack to null appears before we unnull it in the owning thread;
             // this also means we guarantee visibility of an element in the queue if we see the index updated
@@ -889,11 +893,18 @@ public abstract class Recycler<T> {
              *  {@link DELAYED_RECYCLED} initialValue() 方法，创建一个 WeakHashMap<{@link Stack}, {@link WeakOrderQueue}></>
              *  1、说明不同 Stack 对应不同的 WeakOrderQueue。
              *
-             *  这里维护 Stack 和 WeakOrderQueue 对应关系。
+             *  这里维护 Stack 和 WeakOrderQueue 对应关系。（存放着当前线程帮助其他线程回收对象的映射关系）
+             *  假如：
+             *      item 是 Thread_A 分配的对象，当前线程是 Thread_B, 那么 Thread_B 帮助 Thread_A 回收 item。
+             *      那么 `DELAYED_RECYCLED` 放入的 key 是 Stack_A, 然后从 delayedRecycled 中取出 Stack_A 对应到的 WeakOrderQueue.
+             *
+             *
              *
              *  2、通过 Stack 获取到对应 `WeakOrderQueue`
              */
             Map<Stack<?>, WeakOrderQueue> delayedRecycled = DELAYED_RECYCLED.get();
+
+            // 取出对象绑定 Stack 对应的 WeakOrderQueue.
             WeakOrderQueue queue = delayedRecycled.get(this);
             // 说明，线程B，没有回收过线程A的对象。
             if (queue == null) {

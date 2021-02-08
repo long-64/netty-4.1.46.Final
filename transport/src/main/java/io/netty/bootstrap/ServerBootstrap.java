@@ -184,6 +184,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                 if (handler != null) {
                     pipeline.addLast(handler);
                 }
+
                 //封装成task任务交由channel对应的 `eventLoop线程` 来执行，防止并发操作 `channel`
                 ch.eventLoop().execute(new Runnable() {
                     @Override
@@ -191,6 +192,10 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                         /**
                          * 添加ServerBootstrapAcceptor，主要用于接收TCP连接后初始化并注册NioSocketChannel到workGroup
                          *  {@link ServerBootstrapAcceptor
+                         *
+                         *   疑问: `ServerBootstrapAcceptor` 注册过程为什么需要封装成异步 task.
+                         *       初始化时，还没有将 channel，注册到 Selector 对象上，所以还无法注册 Accept 事件到 Selector 上。所以事先添加 ChannelInitializer 处理器。
+                         *       等待 Channel 注册完成后，再向 Pipeline 中添加 ServerBootstrapAcceptor 处理器。
                          */
                         pipeline.addLast(new ServerBootstrapAcceptor(
                                 ch, currentChildGroup, currentChildHandler, currentChildOptions, currentChildAttrs));

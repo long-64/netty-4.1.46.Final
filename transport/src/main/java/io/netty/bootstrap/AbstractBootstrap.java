@@ -37,6 +37,7 @@ import io.netty.util.internal.logging.InternalLogger;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.channels.SelectableChannel;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -106,6 +107,14 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * {@link Channel} implementation has no no-args constructor.
      *
      *  初始化 Channel。
+     *
+     *   【 配置的Channel 类型 】
+     *
+     *   ServerBootstrap b = new ServerBootstrap();
+     *      b.group(bossGroup, workerGroup)
+     *      .channel(NioServerSocketChannel.class)
+     *
+     *
      */
     public B channel(Class<? extends C> channelClass) {
         /**
@@ -291,7 +300,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      */
     private ChannelFuture doBind(final SocketAddress localAddress) {
         /**
-         * 初始化 channel, 并注册到 Selector {@link #initAndRegister()}
+         * 初始化 channel, 并注册到 Selector `【异步事件】` {@link #initAndRegister()}
          */
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
@@ -308,7 +317,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             doBind0(regFuture, channel, localAddress, promise);
             return promise;
 
-        // 注册还没有完成。
+        /*
+         * 注册还没有完成。添加一个 ChannelFutureListener 回调监听。
+         */
         } else {
 
             /**
@@ -351,13 +362,15 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             /**
              * Bootstrap.channel 初始化 channel 实例
              * @see #channel
-             * 使用反射机制，创建NioSocketChannel 实例（默认构造器）
-             * @see io.netty.channel.socket.nio.NioSocketChannel#NioSocketChannel()
+             * 使用反射机制，创建NioSocketChannel 实例（默认构造器）{@link ReflectiveChannelFactory#newChannel()}
+             *  【 创建 Channel 】 {@link io.netty.channel.socket.nio.NioSocketChannel#NioSocketChannel()
+             *  
+             *   【 最终实现类 】 {@link io.netty.channel.AbstractChannel#AbstractChannel(Channel)}  
              */
             channel = channelFactory.newChannel();
 
             /**
-             *  @see #init(Channel)
+             *  【 初始化 Channel 】 {@link #init(Channel)}
              *  ServerBootstrap 主从模式，workGroup 绑定逻辑。{@link ServerBootstrap#init(Channel)}
              *  Bootstrap 将 Channel 添加到 Pipeline {@link Bootstrap#init(Channel)}
              */
@@ -437,6 +450,10 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             @Override
             public void run() {
                 if (regFuture.isSuccess()) {
+
+                    /**
+                     *  端口绑定 {@link io.netty.channel.AbstractChannel#bind(SocketAddress, ChannelPromise)}
+                     */
                     channel.bind(localAddress, promise).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
                 } else {
                     promise.setFailure(regFuture.cause());

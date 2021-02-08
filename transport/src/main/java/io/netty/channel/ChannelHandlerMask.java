@@ -92,6 +92,7 @@ final class ChannelHandlerMask {
             if (ChannelInboundHandler.class.isAssignableFrom(handlerType)) {
                 mask |= MASK_ALL_INBOUND;
 
+                // 排除 Handler 不感兴趣的 Inbound 事件
                 if (isSkippable(handlerType, "channelRegistered", ChannelHandlerContext.class)) {
                     mask &= ~MASK_CHANNEL_REGISTERED;
                 }

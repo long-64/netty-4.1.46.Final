@@ -60,6 +60,8 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
              *  {@link SelectorProvider#provider()} which is called by each ServerSocketChannel.open() otherwise.
              *
              *  See <a href="https://github.com/netty/netty/issues/2308">#2308</a>.
+             *
+             *  创建 JDK 底层的 ServerSocketChannel
              */
             return provider.openServerSocketChannel();
         } catch (IOException e) {
@@ -129,11 +131,13 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
         return SocketUtils.localSocketAddress(javaChannel().socket());
     }
 
+    /**
+     *  调用 JDK 底层进行，端口绑定。
+     */
     @SuppressJava6Requirement(reason = "Usage guarded by java version check")
     @Override
     protected void doBind(SocketAddress localAddress) throws Exception {
         if (PlatformDependent.javaVersion() >= 7) {
-            //获取NIO原生的ServerSocketChannel进行绑定端口操作
             javaChannel().bind(localAddress, config.getBacklog());
         } else {
             javaChannel().socket().bind(localAddress, config.getBacklog());

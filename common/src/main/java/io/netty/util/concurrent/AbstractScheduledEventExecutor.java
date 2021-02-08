@@ -254,9 +254,13 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
     }
 
     private <V> ScheduledFuture<V> schedule(final ScheduledFutureTask<V> task) {
+
+        // Reactor 线程内部
         if (inEventLoop()) {
             scheduleFromEventLoop(task);
         } else {
+
+            // 外部线程
             final long deadlineNanos = task.deadlineNanos();
             // task will add itself to scheduled task queue when run if not expired
             if (beforeScheduledTaskSubmitted(deadlineNanos)) {

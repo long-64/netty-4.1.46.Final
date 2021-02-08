@@ -292,6 +292,8 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
             }
             if (!taskQueue.offer(scheduledTask)) {
                 // No space left in the task queue add it back to the scheduledTaskQueue so we pick it up again.
+
+                // 如果普通任务队列已满，把定时任务放回
                 scheduledTaskQueue.add((ScheduledFutureTask<?>) scheduledTask);
                 return false;
             }
@@ -465,15 +467,18 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     protected boolean runAllTasks(long timeoutNanos) {
 
         /**
-         * 将任务给聚合 {@link #fetchFromScheduledTaskQueue()}
+         * 1. 合并定时任务到普通任务队列 {@link #fetchFromScheduledTaskQueue()}
          */
         fetchFromScheduledTaskQueue();
+
+        // 2. 从普通任务队列中取出任务并处理
         Runnable task = pollTask();
         if (task == null) {
             afterRunningAllTasks();
             return false;
         }
 
+        // 计算任务处理的超时时间
         final long deadline = timeoutNanos > 0 ? ScheduledFutureTask.nanoTime() + timeoutNanos : 0;
         long runTasks = 0;
         long lastExecutionTime;
@@ -491,6 +496,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                 }
             }
 
+            // 继续取出下一个任务
             task = pollTask();
             if (task == null) {
                 lastExecutionTime = ScheduledFutureTask.nanoTime();
@@ -498,6 +504,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
             }
         }
 
+        // 3. 收尾工作
         afterRunningAllTasks();
         this.lastExecutionTime = lastExecutionTime;
         return true;
@@ -873,6 +880,10 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         }
 
         if (!addTaskWakesUp && immediate) {
+
+            /**
+             *  nioEventLoop {@link io.netty.channel.nio.NioEventLoop#wakeup(boolean)}
+             */
             wakeup(inEventLoop);
         }
     }

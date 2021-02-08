@@ -104,6 +104,10 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         this.name = ObjectUtil.checkNotNull(name, "name");
         this.pipeline = pipeline;
         this.executor = executor;
+
+        /**
+         *  【core】{@link ChannelHandlerMask#mask(Class)}
+         */
         this.executionMask = mask(handlerClass);
         // Its ordered if its driven by the EventLoop or the given Executor is an instanceof OrderedEventExecutor.
         ordered = executor == null || executor instanceof OrderedEventExecutor;
@@ -172,10 +176,10 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
             try {
                 /**
                  *
-                 * {@link ChannelInitializer#channelRegistered(ChannelHandlerContext)}
+                 *  【 ChannelPipeline 】 {@link ChannelInitializer#channelRegistered(ChannelHandlerContext)}
                  *
-                 * 1、循环执行，从Head开始遍历 Pipeline 的双向链表。
-                 * 2、找到第一个属性inbound为true的ChannelHandlerContext实例
+                 * 1、循环执行，从 `Head` 开始遍历 Pipeline 的双向链表。
+                 * 2、找到第一个属性inbound为true的 ChannelHandlerContext 实例
                  *
                  */
                 ((ChannelInboundHandler) handler()).channelRegistered(this);
@@ -387,6 +391,8 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 
     @Override
     public ChannelHandlerContext fireChannelRead(final Object msg) {
+
+        // 找到下一个节点，执行 invokeChannelRead
         invokeChannelRead(findContextInbound(MASK_CHANNEL_READ), msg);
         return this;
     }
@@ -394,6 +400,8 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
     static void invokeChannelRead(final AbstractChannelHandlerContext next, Object msg) {
         final Object m = next.pipeline.touch(ObjectUtil.checkNotNull(msg, "msg"), next);
         EventExecutor executor = next.executor();
+
+        // Reactor 线程。
         if (executor.inEventLoop()) {
             next.invokeChannelRead(m);
         } else {
@@ -535,6 +543,10 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         final AbstractChannelHandlerContext next = findContextOutbound(MASK_BIND);
         EventExecutor executor = next.executor();
         if (executor.inEventLoop()) {
+
+            /**
+             *  具体绑定事件 {@link #invokeBind(SocketAddress, ChannelPromise)}
+             */
             next.invokeBind(localAddress, promise);
         } else {
             safeExecute(executor, new Runnable() {
