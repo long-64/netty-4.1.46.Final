@@ -34,6 +34,8 @@ public interface Timer {
      * @throws IllegalStateException       if this timer has been {@linkplain #stop() stopped} already
      * @throws RejectedExecutionException if the pending timeouts are too many and creating new timeout
      *                                    can cause instability in the system.
+     *
+     *    创建任务
      */
     Timeout newTimeout(TimerTask task, long delay, TimeUnit unit);
 
@@ -43,6 +45,8 @@ public interface Timer {
      *
      * @return the handles associated with the tasks which were canceled by
      *         this method
+     *
+     *    停止所有未执行任务
      */
     Set<Timeout> stop();
 }

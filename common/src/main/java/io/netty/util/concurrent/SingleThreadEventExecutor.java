@@ -463,6 +463,8 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     /**
      * Poll all tasks from the task queue and run them via {@link Runnable#run()} method.  This method stops running
      * the tasks in the task queue and returns if it ran longer than {@code timeoutNanos}.
+     *
+     *  带有超时时间来处理任务。之所以设置超时时间是为了防止 Reactor 线程处理任务时间过长而导致 I/O 事件阻塞。
      */
     protected boolean runAllTasks(long timeoutNanos) {
 
@@ -483,6 +485,10 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         long runTasks = 0;
         long lastExecutionTime;
         for (;;) {
+
+            /**
+             *  启动任务 {@link #safeExecute(Runnable)} 将线程启动。
+             */
             safeExecute(task);
 
             runTasks ++;

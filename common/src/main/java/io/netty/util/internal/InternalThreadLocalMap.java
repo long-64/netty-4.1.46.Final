@@ -67,15 +67,21 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
 
     public static InternalThreadLocalMap get() {
         Thread thread = Thread.currentThread();
+
         /**
          * 判断，当前线程是否 `FastThreadLocalThread`
-         *  1、{@link #fastGet(FastThreadLocalThread)}
-         *
-         *  2、{@link #slowGet()}
          */
         if (thread instanceof FastThreadLocalThread) {
+
+            /**
+             *  获取 FastThreadLocalThread 的 threadLocalMap 属性 {@link #fastGet(FastThreadLocalThread)}
+             */
             return fastGet((FastThreadLocalThread) thread);
         } else {
+
+            /**
+             *  JDK 原生 ThreadLocal 中获取 InternalThreadLocalMap {@link #slowGet()}
+             */
             return slowGet();
         }
     }
@@ -124,6 +130,10 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
         slowThreadLocalMap.remove();
     }
 
+    /**
+     * 获取下个有效，下标。【 原子自增】
+     * @return
+     */
     public static int nextVariableIndex() {
         // 进行原子自增。
         int index = nextIndex.getAndIncrement();
@@ -150,6 +160,10 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
         super(newIndexedVariableTable());
     }
 
+    /**
+     * 初始化创建 32 对象数组。
+     * @return
+     */
     private static Object[] newIndexedVariableTable() {
         Object[] array = new Object[32];
         Arrays.fill(array, UNSET);
@@ -327,6 +341,8 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
         Object[] lookup = indexedVariables;
         if (index < lookup.length) {
             Object oldValue = lookup[index];
+
+            // 直接将数组 index 位置设置为 value，时间复杂度为 O(1)
             lookup[index] = value;
             return oldValue == UNSET;
         } else {

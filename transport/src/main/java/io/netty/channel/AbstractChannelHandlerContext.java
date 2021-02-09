@@ -305,8 +305,17 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         }
     }
 
+    /**
+     * 异常传播事件。
+     * @param cause
+     * @return
+     */
     @Override
     public ChannelHandlerContext fireExceptionCaught(final Throwable cause) {
+
+        /**
+         *  异常传播
+         */
         invokeExceptionCaught(findContextInbound(MASK_EXCEPTION_CAUGHT), cause);
         return this;
     }
@@ -336,6 +345,8 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
     private void invokeExceptionCaught(final Throwable cause) {
         if (invokeHandler()) {
             try {
+
+                // 调用 Handler 实现的 exceptionCaught 方法
                 handler().exceptionCaught(this, cause);
             } catch (Throwable error) {
                 if (logger.isDebugEnabled()) {
@@ -352,6 +363,10 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
                 }
             }
         } else {
+
+            /**
+             * fire {@link AbstractChannelHandlerContext#fireExceptionCaught(Throwable)}
+             */
             fireExceptionCaught(cause);
         }
     }
@@ -433,6 +448,10 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
                  */
                 ((ChannelInboundHandler) handler()).channelRead(this, msg);
             } catch (Throwable t) {
+
+                /**
+                 *  异常处理 {@link #notifyHandlerException(Throwable)}
+                 */
                 notifyHandlerException(t);
             }
         } else {
@@ -937,6 +956,9 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
             return;
         }
 
+        /**
+         *  异常调用链处理 {@link #invokeExceptionCaught(Throwable)}
+         */
         invokeExceptionCaught(cause);
     }
 
