@@ -294,7 +294,10 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
             throw new InterruptedException(toString());
         }
 
-        // 检查死循环
+        /**
+         * 检查死循环, Netty 做的一个校验。
+         *  呼应了前面提到的一个坑，或者说注意点——不要用NIO线程执行 await或者sync 方法，会导致死锁，所以 Netty做了一个校验能及时抛出异常提醒用户：
+         */
         checkDeadLock();
 
         // 加锁，加锁对象是当前Promise实例

@@ -15,12 +15,7 @@
  */
 package io.netty.channel.nio;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelConfig;
-import io.netty.channel.ChannelOutboundBuffer;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.RecvByteBufAllocator;
-import io.netty.channel.ServerChannel;
+import io.netty.channel.*;
 
 import java.io.IOException;
 import java.net.PortUnreachableException;
@@ -67,6 +62,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
          */
         @Override
         public void read() {
+            // 保证当前执行的线程，是 NioEventLoop 线程。
             assert eventLoop().inEventLoop();
 
             // 获取服务 channel 的config、pipeline
@@ -109,14 +105,18 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                 int size = readBuf.size();
                 for (int i = 0; i < size; i ++) {
                     readPending = false;
-
                     /**
+                     *  将新连接顺着Channel的pipeline传递下去
                      *  客户端请求触发。 {@link io.netty.channel.DefaultChannelPipeline#fireChannelRead(Object)}
                      */
                     pipeline.fireChannelRead(readBuf.get(i));
                 }
                 readBuf.clear();
                 allocHandle.readComplete();
+
+                /**
+                 *  {@link DefaultChannelPipeline#fireChannelReadComplete()}
+                 */
                 pipeline.fireChannelReadComplete();
 
                 if (exception != null) {

@@ -987,6 +987,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
      * NioEventLoop 线程启动
      */
     private void startThread() {
+        // state 使用 'volatile' 修饰，避免重复启动。
         if (state == ST_NOT_STARTED) {
 
             // TODO 通过原子变量CAS保证只有一个线程执行

@@ -1123,6 +1123,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
     @Override
     public final ChannelPipeline read() {
+        /**
+         * 出站事件的传播方向和入站事件相反——从tail节点开始传播，途径用户自定义的出站handler  {@link TailContext#read()}
+         */
         tail.read();
         return this;
     }
@@ -1492,6 +1495,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
         @Override
         public void read(ChannelHandlerContext ctx) {
+            /**
+             *  调用其父类 {@link AbstractChannel.AbstractUnsafe#beginRead()}
+             */
             unsafe.beginRead();
         }
 
@@ -1532,8 +1538,15 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) {
+
+            /**
+             * 会依次以用户添加入站handler的顺序传播 {@link AbstractChannelHandlerContext#fireChannelActive()}
+             */
             ctx.fireChannelActive();
 
+            /**
+             * 传播结束后,并判断其是否配置的是 '自动读消息' 的, {@link #readIfIsAutoRead()}
+             */
             readIfIsAutoRead();
         }
 
@@ -1559,7 +1572,14 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
 
         private void readIfIsAutoRead() {
+            /**
+             *  配置读事件 {@link DefaultChannelConfig#isAutoRead()}
+             */
             if (channel.config().isAutoRead()) {
+
+                /**
+                 *  {@link AbstractChannel#read()}
+                 */
                 channel.read();
             }
         }

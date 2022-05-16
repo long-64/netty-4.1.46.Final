@@ -294,6 +294,10 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
     @Override
     public Channel read() {
+
+        /**
+         *  即出站事件都是用户代码或者用户线程发起的，是主动触发的事件。{@link DefaultChannelPipeline#read()}
+         */
         pipeline.read();
         return this;
     }
@@ -501,12 +505,12 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
 
             /**
-             * 【 将一个EventLoop赋值给AbstractChannel内部的eventLoop属性 】
+             * 【 将一个EventLoop 赋值给 AbstractChannel 内部的 eventLoop 属性 】
              */
             AbstractChannel.this.eventLoop = eventLoop;
 
             /**
-             * 从Bootstrap的bind()方法一路跟踪到AbstractChannel$AbstractUnsafe的register()方法，
+             * 从Bootstrap的bind() 方法一路跟踪到 AbstractChannel$AbstractUnsafe的register() 方法，
              * 整个代码都是在主线程中运行的，因此上面的eventLoop.inEventLoop()返回值为false
              *
              * 判断当前线程是否是对应的eventLoop线程来决定是直接执行register0还是封装一个task交由对应的eventLoop来执行
@@ -924,6 +928,11 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
 
             try {
+                /**
+                 * [coer]
+                 *
+                 *  NioChannel {@link AbstractNioChannel#doBeginRead()}
+                 */
                 doBeginRead();
             } catch (final Exception e) {
                 invokeLater(new Runnable() {

@@ -236,12 +236,12 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
     static void invokeChannelActive(final AbstractChannelHandlerContext next) {
         EventExecutor executor = next.executor();
         if (executor.inEventLoop()) {
-
             /**
-             *  {@link #invokeChannelActive()}
+             *  EventLoop 线程 {@link #invokeChannelActive()}
              */
             next.invokeChannelActive();
         } else {
+            // 开启一个新线程, 执行 invokeChannelActive()
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
@@ -258,8 +258,14 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         if (invokeHandler()) {
             try {
                 /**
+                 *
+                 * 第一个出站 handler.
+                 *   {@link io.netty.channel.DefaultChannelPipeline.HeadContext#channelActive(ChannelHandlerContext)}
+                 *
+                 *
                  * 如果用户没有实现，
-                 * {@link ChannelInboundHandlerAdapter#channelActive(ChannelHandlerContext)}
+                 *  {@link ChannelInboundHandlerAdapter#channelActive(ChannelHandlerContext)}
+                 *
                  *
                  * 最后一个节点。
                  * {@link io.netty.channel.DefaultChannelPipeline.TailContext#channelActive(ChannelHandlerContext)}
@@ -762,9 +768,15 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 
     @Override
     public ChannelHandlerContext read() {
+
+        /**
+         *  当前Context 为起点，向前遍历, xx <- Tail {@link #findContextOutbound(int)}
+         */
         final AbstractChannelHandlerContext next = findContextOutbound(MASK_READ);
         EventExecutor executor = next.executor();
         if (executor.inEventLoop()) {
+
+            // invokeRead()
             next.invokeRead();
         } else {
             Tasks tasks = next.invokeTasks;
@@ -780,6 +792,9 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
     private void invokeRead() {
         if (invokeHandler()) {
             try {
+                /**
+                 * 途径用户定义的出站handler后，最终调用到HeadContext的read方法 {@link io.netty.channel.DefaultChannelPipeline.HeadContext#read(ChannelHandlerContext)}
+                 */
                 ((ChannelOutboundHandler) handler()).read(this);
             } catch (Throwable t) {
                 notifyHandlerException(t);

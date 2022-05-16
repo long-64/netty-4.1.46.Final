@@ -190,7 +190,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                     @Override
                     public void run() {
                         /**
-                         * 添加ServerBootstrapAcceptor，主要用于接收TCP连接后初始化并注册NioSocketChannel到workGroup
+                         * 添加ServerBootstrapAcceptor，主要用于接收TCP连接后初始化并注册 NioSocketChannel 到 workGroup
                          *  {@link ServerBootstrapAcceptor
                          *
                          *   疑问: `ServerBootstrapAcceptor` 注册过程为什么需要封装成异步 task.
