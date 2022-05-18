@@ -245,8 +245,13 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             // If the registered is false it means that the channel was not registered on an eventLoop yet.
             // In this case we add the context to the pipeline and add a task that will call
             // ChannelHandler.handlerAdded(...) once the channel is registered.
+
+            // Netty 认为只有当新的 Channel 已经成功注册了 I/O 多路复用器，且已经绑定 I/O 线程后，才有必要为其添加，用户配置的 handler，否则不添加。
             if (!registered) {
                 newCtx.setAddPending();
+                /**
+                 *  延迟逻辑 {@link #callHandlerCallbackLater(AbstractChannelHandlerContext, boolean)}
+                 */
                 callHandlerCallbackLater(newCtx, true);
                 return this;
             }
@@ -483,7 +488,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     @Override
     public final ChannelPipeline remove(ChannelHandler handler) {
         /**
-         *  {@link #getContextOrDie(ChannelHandler)}
+         *  找到要删除的节点 {@link #getContextOrDie(ChannelHandler)}
          *   删除核心逻辑 {@link #remove(AbstractChannelHandlerContext)}
          */
         remove(getContextOrDie(handler));
@@ -525,6 +530,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         assert ctx != head && ctx != tail;
 
         synchronized (this) {
+            // 不能删除头尾节点，因为这是pipeline链表的核心组成
             atomicRemoveFromHandlerList(ctx);
 
             // If the registered is false it means that the channel was not registered on an eventloop yet.
@@ -540,6 +546,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
                 executor.execute(new Runnable() {
                     @Override
                     public void run() {
+
+                        /**
+                         *  非 EventLoop 线程, 执行删除 {@link DefaultChannelPipeline#callHandlerRemoved0(AbstractChannelHandlerContext)}
+                         */
                         callHandlerRemoved0(ctx);
                     }
                 });
@@ -552,6 +562,8 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
     /**
      * Method is synchronized to make the handler removal from the double linked list atomic.
+     *
+     *  不能删除头尾节点，因为这是pipeline链表的核心组成, 移动链表指针，删除 'ctx' 节点。
      */
     private synchronized void atomicRemoveFromHandlerList(AbstractChannelHandlerContext ctx) {
         AbstractChannelHandlerContext prev = ctx.prev;
@@ -718,9 +730,8 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     private void callHandlerRemoved0(final AbstractChannelHandlerContext ctx) {
         // Notify the complete removal.
         try {
-
             /**
-             * {@link AbstractChannelHandlerContext#callHandlerRemoved()}
+             *  删除逻辑 {@link AbstractChannelHandlerContext#callHandlerRemoved()}
              */
             ctx.callHandlerRemoved();
         } catch (Throwable t) {
@@ -735,6 +746,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             firstRegistration = false;
             // We are now registered to the EventLoop. It's time to call the callbacks for the ChannelHandlers,
             // that were added before the registration was done.
+
+            /**
+             *  {@link #callHandlerAddedForAllHandlers()}
+             */
             callHandlerAddedForAllHandlers();
         }
     }
@@ -804,7 +819,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     @Override
     public final ChannelHandlerContext context(ChannelHandler handler) {
         ObjectUtil.checkNotNull(handler, "handler");
-
+        // 从 head节点的 next节点开始遍历 pipeline.
         AbstractChannelHandlerContext ctx = head.next;
         for (;;) {
 
@@ -1206,6 +1221,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     }
 
     private AbstractChannelHandlerContext getContextOrDie(ChannelHandler handler) {
+        /**
+         * 找到要删除的节点, {@link #context(ChannelHandler)}
+         */
         AbstractChannelHandlerContext ctx = (AbstractChannelHandlerContext) context(handler);
         if (ctx == null) {
             throw new NoSuchElementException(handler.getClass().getName());
@@ -1223,6 +1241,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     }
 
+    /**
+     * 执行, 链表中封装的,异步任务。
+     *  链表: 「 pendingHandlerCallbackHead 」
+     */
     private void callHandlerAddedForAllHandlers() {
         final PendingHandlerCallback pendingHandlerCallbackHead;
         synchronized (this) {
@@ -1241,6 +1263,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         // the EventLoop.
         PendingHandlerCallback task = pendingHandlerCallbackHead;
         while (task != null) {
+            // 异步 task 执行。
             task.execute();
             task = task.next;
         }
@@ -1248,7 +1271,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
     private void callHandlerCallbackLater(AbstractChannelHandlerContext ctx, boolean added) {
         assert !registered;
-
+        /**
+         * 1、存储需要，暂时挂起一个异步任务，后续延迟触发。将其组成一个链表。
+         * 2、塞入到了一个链表—— pendingHandlerCallbackHead
+         */
         PendingHandlerCallback task = added ? new PendingHandlerAddedTask(ctx) : new PendingHandlerRemovedTask(ctx);
         PendingHandlerCallback pending = pendingHandlerCallbackHead;
         if (pending == null) {
@@ -1522,6 +1548,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
         @Override
         public void channelRegistered(ChannelHandlerContext ctx) {
+
+            /**
+             * 延迟调用,通知 {@link #invokeHandlerAddedIfNeeded()}
+             */
             invokeHandlerAddedIfNeeded();
             ctx.fireChannelRegistered();
         }

@@ -435,8 +435,17 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
                     // to check if the total size of all the buffers is non-zero.
                     ByteBuffer buffer = nioBuffers[0];
                     int attemptedBytes = buffer.remaining();
+
+                    /**
+                     *  往Channel里写出数据，如果返回为 0，说明可能遇到了网络较差的情况。
+                     *  TCP 的发送 缓冲区很快会满，这一版是由 滑动窗口等流量控制机制决定的，缓冲区满就会拒绝，
+                     */
                     final int localWrittenBytes = ch.write(buffer);
                     if (localWrittenBytes <= 0) {
+
+                        /**
+                         *  设置 setOpWrite 为 true {@link #incompleteWrite(boolean)}
+                         */
                         incompleteWrite(true);
                         return;
                     }
@@ -463,6 +472,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
                     break;
                 }
             }
+            // 跳出循环。
         } while (writeSpinCount > 0);
 
         incompleteWrite(writeSpinCount < 0);

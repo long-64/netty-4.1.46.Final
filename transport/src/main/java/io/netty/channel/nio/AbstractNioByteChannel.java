@@ -339,6 +339,10 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
     protected final void incompleteWrite(boolean setOpWrite) {
         // Did not write completely.
         if (setOpWrite) {
+
+            /**
+             *  给当前Channel注册写事件 {@link #setOpWrite()}
+             */
             setOpWrite();
         } else {
             // It is possible that we have set the write OP, woken up by NIO because the socket is writable, and then
@@ -382,6 +386,8 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
         }
         final int interestOps = key.interestOps();
         if ((interestOps & SelectionKey.OP_WRITE) == 0) {
+
+            // 给当前Channel注册写事件, 等 NIO线程的事件循环处理器——run方法里再次轮询到写事件时，说明网络OK了，NIO线程再回头执行写操作。
             key.interestOps(interestOps | SelectionKey.OP_WRITE);
         }
     }

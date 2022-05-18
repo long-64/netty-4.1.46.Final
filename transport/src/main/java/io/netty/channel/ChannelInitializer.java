@@ -132,16 +132,17 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
 
     @Override
     public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+        // 这些标记位，都没用了，删除以节省资源。
         initMap.remove(ctx);
     }
 
     @SuppressWarnings("unchecked")
     private boolean initChannel(ChannelHandlerContext ctx) throws Exception {
+        // 判断当前 Channel 的 handler 是否已经被处理过。
         if (initMap.add(ctx)) { // Guard against re-entrance.
             try {
-
                 /**
-                 *  由子类实现。
+                 *  由子类实现, 抽象方法
                  */
                 initChannel((C) ctx.channel());
             } catch (Throwable cause) {
@@ -149,10 +150,16 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
                 // We do so to prevent multiple calls to initChannel(...).
                 exceptionCaught(ctx, cause);
             } finally {
+                /**
+                 * 这里删除,历史使命 handler, 是Netty 优化点。为节省资源
+                 *  1、ChannelInitializer 已经完成使命, 通过 pipeline 然后删除, 已节省资源。
+                 */
                 ChannelPipeline pipeline = ctx.pipeline();
                 if (pipeline.context(this) != null) {
-
-                    // 将 ChannelInitializer 自身从 Pipeline 中移出，
+                    /**
+                     * 将 ChannelInitializer 自身从 Pipeline 中移出，{@link DefaultChannelPipeline#remove(AbstractChannelHandlerContext)}
+                     *  最终调用 {@link #handlerRemoved(ChannelHandlerContext)}
+                     */
                     pipeline.remove(this);
                 }
             }
