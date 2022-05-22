@@ -46,6 +46,12 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
 
     private long deadlineNanos;
     /* 0 - no repeat, >0 - repeat at fixed rate, <0 - repeat with fixed delay */
+
+    /**
+     *  periodNanos =0：代表任务在延迟若干时间后执行，且只需要执行一次，就可以从定时队列里删除
+     *  periodNanos >0，代表任务需要周期性的执行，每周期该任务都需要执行完
+     *  periodNanos <0，代表定时任务在延迟若干时间后执行，但是一次可能执行不完，需要隔一定时间再执行
+     */
     private final long periodNanos;
 
     private int queueIndex = INDEX_NOT_IN_QUEUE;
@@ -165,6 +171,8 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
                 }
                 return;
             }
+
+            // 一次性任务
             if (periodNanos == 0) {
                 if (setUncancellableInternal()) {
                     V result = runTask();
@@ -172,15 +180,19 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
                 }
             } else {
                 // check if is done as it may was cancelled
+                // 周期性任务。
                 if (!isCancelled()) {
                     runTask();
                     if (!executor().isShutdown()) {
+
+                        // [ periodNanos > 0 ] 代表定时任务在延迟若干时间后执行，但是一次可能执行不完，需要隔一定时间再执行
                         if (periodNanos > 0) {
                             deadlineNanos += periodNanos;
                         } else {
                             deadlineNanos = nanoTime() - periodNanos;
                         }
                         if (!isCancelled()) {
+                            // 要及时将周期任务或者一次执行不完的定时任务塞回定时任务队列，注意没有塞回到 MPSCQ。
                             scheduledExecutor().scheduledTaskQueue().add(this);
                         }
                     }

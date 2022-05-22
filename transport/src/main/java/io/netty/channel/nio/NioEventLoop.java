@@ -560,6 +560,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                         }
                     } finally {
                         // Ensure we always run tasks.
+                        /**
+                         *  执行 MPSCQ 的task {@link #runAllTasks()}
+                         */
                         ranTasks = runAllTasks();
                     }
                 } else if (strategy > 0) {
@@ -568,11 +571,15 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                         processSelectedKeys();
                     } finally {
                         // Ensure we always run tasks.
+
+                        /**
+                         *  Netty为了保证I/O事件以及轮次 Channel 能被及时处理，所以不会一直让NIO线程耽误在 MPSCQ 的处理上。
+                         *   计算timeoutNanos 时间。
+                         */
                         final long ioTime = System.nanoTime() - ioStartTime;
                         ranTasks = runAllTasks(ioTime * (100 - ioRatio) / ioRatio);
                     }
                 } else {
-
                     /**
                      *  处理所有任务 {@link #runAllTasks(long)}
                      */

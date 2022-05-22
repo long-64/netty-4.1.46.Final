@@ -280,20 +280,27 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         }
     }
 
+    /**
+     * 将 即将执行的定时任务，放入普通任务队列。
+     *  如果 [普通任务队列] 已满，则把定时任务放回, [scheduledTaskQueue]。
+     */
     private boolean fetchFromScheduledTaskQueue() {
         if (scheduledTaskQueue == null || scheduledTaskQueue.isEmpty()) {
             return true;
         }
         long nanoTime = AbstractScheduledEventExecutor.nanoTime();
         for (;;) {
+            /**
+             *  从scheduledTaskQueue取出第一个定时任务 {@link #pollScheduledTask(long)}
+             */
             Runnable scheduledTask = pollScheduledTask(nanoTime);
             if (scheduledTask == null) {
                 return true;
             }
+
+            // 如果普通任务队列已满，把定时任务放回
             if (!taskQueue.offer(scheduledTask)) {
                 // No space left in the task queue add it back to the scheduledTaskQueue so we pick it up again.
-
-                // 如果普通任务队列已满，把定时任务放回
                 scheduledTaskQueue.add((ScheduledFutureTask<?>) scheduledTask);
                 return false;
             }
@@ -380,10 +387,17 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         boolean ranAtLeastOne = false;
 
         do {
+            /**
+             * 1、将 即将执行的定时任务，放入普通任务队列。{@link #fetchFromScheduledTaskQueue()}
+             * 2、从 MPSCQ 中取出任务, run {@link #runAllTasksFrom(Queue)}
+             */
             fetchedAll = fetchFromScheduledTaskQueue();
             if (runAllTasksFrom(taskQueue)) {
                 ranAtLeastOne = true;
             }
+            /*
+             * fetchedAll = false 说明 MPSCQ 满了, 或者有异常。
+             */
         } while (!fetchedAll); // keep on processing until we fetched all scheduled tasks.
 
         if (ranAtLeastOne) {
@@ -476,16 +490,21 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         // 2. 从普通任务队列中取出任务并处理
         Runnable task = pollTask();
         if (task == null) {
+
+            /**
+             * 如直接从MPSCQ取出的task为null，那么也表明本轮runAllTasks结束，也要调用它做善后 {@link io.netty.channel.SingleThreadEventLoop#afterRunningAllTasks()}
+             */
             afterRunningAllTasks();
             return false;
         }
 
-        // 计算任务处理的超时时间
+        // 计算任务处理的超时时间(预估 非I/O 任务的执行时间 )
         final long deadline = timeoutNanos > 0 ? ScheduledFutureTask.nanoTime() + timeoutNanos : 0;
+
+        // 任务计数
         long runTasks = 0;
         long lastExecutionTime;
         for (;;) {
-
             /**
              *  启动任务 {@link #safeExecute(Runnable)} 将线程启动。
              */
@@ -495,6 +514,20 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
             // Check timeout every 64 tasks because nanoTime() is relatively expensive.
             // XXX: Hard-coded value - will make it configurable if it is really a problem.
+
+            /*
+             * 【 tag: Netty-优化 】
+             *
+             * 发现了一个0x3F常量，这个16进制数等价于10进制的63，即一轮中执行异步任务的个数，每累计到64次
+             *  就计算一次 runAllTasks 方法的执行耗时，并和当前方法的 deadline 比较，
+             * 如果已经超过了本次执行 runAllTasks的deadline，那么就结束执行；否则，继续执行。
+             *
+             *
+             *  如果没有，异步任务个数（64的校验）
+             *  1、如果 MPSCQ里有海量的短的定时任务，NIO线程每次执行完一个定时任务都要计算nanoTime，并判断是否到了runAllTasks的截止时间，那么效率是很低下的。
+             *  2、因此Netty就做了一个优化——每累计执行N个任务后，才真的去计算一次时间，而且为了方便使用位运算优化，就取了一个合适的偶数——64，这样不大不小的数字
+             *
+             */
             if ((runTasks & 0x3F) == 0) {
                 lastExecutionTime = ScheduledFutureTask.nanoTime();
                 if (lastExecutionTime >= deadline) {
@@ -510,7 +543,12 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
             }
         }
 
-        // 3. 收尾工作
+        /**
+         *  调用时机: EventLoop事件循环的一轮runAllTasks结束，即for循环退出需要做一次善后处理.
+         *
+         * 3. 收尾工作 {@link io.netty.channel.SingleThreadEventLoop#afterRunningAllTasks()}
+         *   1、用户将自定义的异步任务封装为task，调用它就可以将task添加到tailTasks。
+         */
         afterRunningAllTasks();
         this.lastExecutionTime = lastExecutionTime;
         return true;

@@ -148,6 +148,10 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
 
     @Override
     protected void afterRunningAllTasks() {
+
+        /**
+         *  runAllTasksFrom {@link SingleThreadEventExecutor#runAllTasksFrom(Queue)}
+         */
         runAllTasksFrom(tailTasks);
     }
 

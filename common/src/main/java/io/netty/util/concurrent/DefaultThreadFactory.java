@@ -72,6 +72,7 @@ public class DefaultThreadFactory implements ThreadFactory {
     public static String toPoolName(Class<?> poolType) {
         ObjectUtil.checkNotNull(poolType, "poolType");
 
+        // 获取简单类名，
         String poolName = StringUtil.simpleClassName(poolType);
         switch (poolName.length()) {
             case 0:
@@ -79,7 +80,9 @@ public class DefaultThreadFactory implements ThreadFactory {
             case 1:
                 return poolName.toLowerCase(Locale.US);
             default:
+                // 如果第一个字符，是大写字母、第二个字符是小写字符,做一个转换，例如: NioEventLoop
                 if (Character.isUpperCase(poolName.charAt(0)) && Character.isLowerCase(poolName.charAt(1))) {
+                    // NioEventLoop 转换为 nioEventLoop
                     return Character.toLowerCase(poolName.charAt(0)) + poolName.substring(1);
                 } else {
                     return poolName;

@@ -80,6 +80,10 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
 
     PriorityQueue<ScheduledFutureTask<?>> scheduledTaskQueue() {
         if (scheduledTaskQueue == null) {
+
+            /**
+             *  Netty 自己实现优先级队列 {@link DefaultPriorityQueue
+             */
             scheduledTaskQueue = new DefaultPriorityQueue<ScheduledFutureTask<?>>(
                     SCHEDULED_FUTURE_TASK_COMPARATOR,
                     // Use same initial capacity as java.util.PriorityQueue
@@ -127,7 +131,11 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
      */
     protected final Runnable pollScheduledTask(long nanoTime) {
         assert inEventLoop();
-
+        /**
+         *  peek方法不会删除元素，只返回队头元素, 这里使用 `peek`
+         *  Netty会先判断该定时任务是不是真的到 deadline了，通过取出定时任务的 deadline和传入的参数nanoTime比较，
+         *  传入的这个参数是当前时间。如果没有到 deadline，那么就不需要拿出，只有该任务马上要该执行了（到deadline），才真的删除并取出
+         */
         ScheduledFutureTask<?> scheduledTask = peekScheduledTask();
         if (scheduledTask == null || scheduledTask.deadlineNanos() - nanoTime > 0) {
             return null;
@@ -253,10 +261,19 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
         scheduledTaskQueue().add(task.setId(++nextTaskId));
     }
 
+    /**
+     * 这样设计目的：schedule 保证了对定时任务队列访问始终是单线程在执行。
+     * @param task
+     * @return
+     * @param <V>
+     */
     private <V> ScheduledFuture<V> schedule(final ScheduledFutureTask<V> task) {
 
         // Reactor 线程内部
         if (inEventLoop()) {
+            /**
+             *  将 Task 放入队列中 {@link #scheduleFromEventLoop(ScheduledFutureTask)}
+             */
             scheduleFromEventLoop(task);
         } else {
 

@@ -1650,6 +1650,8 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         @Override
         void execute() {
             EventExecutor executor = ctx.executor();
+
+            // 判断是否是 NIO 线程, 设计目的: 保证线程安全。
             if (executor.inEventLoop()) {
                 callHandlerAdded0(ctx);
             } else {

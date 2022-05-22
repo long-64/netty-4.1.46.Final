@@ -33,7 +33,7 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
     @Override
     public EventExecutorChooser newChooser(EventExecutor[] executors) {
         /**
-         * 判断 是否是2的平方。
+         * 判断 是否是2的平方。{@link #isPowerOfTwo(int)}
          * 这两个类，都实现 {@link EventExecutorChooser#next()} 方法
          *   主要功能是，数组索引循环移位。
          */
@@ -48,6 +48,16 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
         }
     }
 
+    /**
+     *  CPU直接对二进制位操作的速度是最快的。
+     *   回忆负数表示，采用补码表示负数的目的就是为了硬件操作方便，可以把减法转换成加法来运算。
+     *   对于正数，它的反码、补码都为本身
+     *   对于负数，它的反码就是除去符号位取反，如果加1就得到了它的补码。
+     *   而int变量val直接和其自身负数-val做逻辑与运算，如果val是2的幂次，最后还是val，可以简单验证
+     *
+     * @param val
+     * @return
+     */
     private static boolean isPowerOfTwo(int val) {
         return (val & -val) == val;
     }
@@ -64,7 +74,8 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
          * 每次索引自增后 与数组长度取模。
          *
          *    在计算机底层：& 比 % 效率要高。
-         * @return
+         *
+         *   既 a%b, 当且仅当 b 是 2的幂次，a%b 等价于 a &(b-1)
          */
         @Override
         public EventExecutor next() {
