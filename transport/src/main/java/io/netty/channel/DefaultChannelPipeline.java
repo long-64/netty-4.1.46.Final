@@ -238,7 +238,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             newCtx = newContext(group, filterName(name, handler), handler);
 
             /**
-             * 插入双向链表中 {@link #addLast0(AbstractChannelHandlerContext)}
+             * 将 ctx, 插入双向链表中 {@link #addLast0(AbstractChannelHandlerContext)}
              */
             addLast0(newCtx);
 
@@ -1276,12 +1276,15 @@ public class DefaultChannelPipeline implements ChannelPipeline {
          * 2、塞入到了一个链表—— pendingHandlerCallbackHead
          */
         PendingHandlerCallback task = added ? new PendingHandlerAddedTask(ctx) : new PendingHandlerRemovedTask(ctx);
+
+        // 使用，局部变量存储。链表头节点。
         PendingHandlerCallback pending = pendingHandlerCallbackHead;
         if (pending == null) {
             pendingHandlerCallbackHead = task;
         } else {
             // Find the tail of the linked-list.
             while (pending.next != null) {
+                // 使用尾插法插入了该 task。
                 pending = pending.next;
             }
             pending.next = task;
@@ -1653,6 +1656,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
             // 判断是否是 NIO 线程, 设计目的: 保证线程安全。
             if (executor.inEventLoop()) {
+                /**
+                 * 为延迟任务链表添加任务 {@link #callHandlerAdded0(AbstractChannelHandlerContext)}
+                 */
                 callHandlerAdded0(ctx);
             } else {
                 try {

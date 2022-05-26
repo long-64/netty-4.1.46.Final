@@ -128,7 +128,7 @@ public final class ChannelOutboundBuffer {
         // See https://github.com/netty/netty/issues/1619
 
         /**
-         *  {@link #incrementPendingOutboundBytes(long, boolean)}
+         *  流量控制的机制 {@link #incrementPendingOutboundBytes(long, boolean)}
          */
         incrementPendingOutboundBytes(entry.pendingSize, false);
     }
@@ -180,10 +180,14 @@ public final class ChannelOutboundBuffer {
             return;
         }
 
+        // 会判断 totalPendingSize 的大小，是否超过当前 Channel 的高水位阈值（默认 64KB 大小），
+        // 如果超过，那么就关闭写的开关。调用 pipeline 的 fireChannelWritabilityChanged
         long newWriteBufferSize = TOTAL_PENDING_SIZE_UPDATER.addAndGet(this, size);
         if (newWriteBufferSize > channel.config().getWriteBufferHighWaterMark()) {
 
-            // 【setUnwritable】
+            /**
+             * 【setUnwritable】 {@link #setUnwritable(boolean)}
+             */
             setUnwritable(invokeLater);
         }
     }
@@ -623,6 +627,9 @@ public final class ChannelOutboundBuffer {
             final int newValue = oldValue | 1;
             if (UNWRITABLE_UPDATER.compareAndSet(this, oldValue, newValue)) {
                 if (oldValue == 0 && newValue != 0) {
+                    /**
+                     * 传播写状态, 事件 {@link #fireChannelWritabilityChanged(boolean)}
+                     */
                     fireChannelWritabilityChanged(invokeLater);
                 }
                 break;

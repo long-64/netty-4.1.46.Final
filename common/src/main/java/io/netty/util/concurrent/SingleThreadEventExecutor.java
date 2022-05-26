@@ -623,11 +623,17 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
     /**
      * Add a {@link Runnable} which will be executed on shutdown of this instance
+     *
+     *  Netty 钩子方法。
      */
     public void addShutdownHook(final Runnable task) {
         if (inEventLoop()) {
+
+            // 将 Task, 添加到 shutdownHooks 中。
             shutdownHooks.add(task);
         } else {
+            // Netty 一贯套路， 非NIO 线程，则异步添加到 shutdownHooks 中。
+            // shutdownHooks 使用 Set 集合，是为了按照 FIFO 的顺序排队，被执行。
             execute(new Runnable() {
                 @Override
                 public void run() {
@@ -657,8 +663,14 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         boolean ran = false;
         // Note shutdown hooks can add / remove shutdown hooks.
         while (!shutdownHooks.isEmpty()) {
+
+            // Netty 使用 copy 模式，避免线程同步，保证线程安全。
             List<Runnable> copy = new ArrayList<Runnable>(shutdownHooks);
+
+            // 清空原有，钩子方法。
             shutdownHooks.clear();
+
+            // 循环执行，执行 Task。
             for (Runnable task: copy) {
                 try {
                     task.run();
@@ -820,6 +832,9 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
             gracefulShutdownStartTime = ScheduledFutureTask.nanoTime();
         }
 
+        /**
+         *  shutdown 执行 钩子方法  {@link #runShutdownHooks()}
+         */
         if (runAllTasks() || runShutdownHooks()) {
             if (isShutdown()) {
                 // Executor shut down - no new tasks anymore.
